@@ -1,6 +1,6 @@
 # shiny app demo showing SERC and STRI water quality and met data
 # Global script runs first when initializing application
-# Packages are loaded and data is loaded 
+# Packages and data are loaded 
 
 library(shiny)
 library(lubridate)
