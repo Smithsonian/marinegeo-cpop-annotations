@@ -39,6 +39,13 @@ MET <- fread("./data/2013_MET_QAQC_STRI.csv") %>%
   bind_rows(fread("./data/2017_MET_QAQC_SERC.csv")) %>%
   mutate(Timestamp = mdy_hm(Timestamp))
 
+# waterlevel <- fread("./data/2015_Water_Level_QAQC_SERC.csv") %>%
+#   bind_rows(fread("./data/2016_Water_Level_QAQC_SERC.csv")) %>%
+#   bind_rows(fread("./data/2017_Water_Level_QAQC_SERC.csv")) %>%
+#   bind_rows(fread("./data/2018_Water_Level_RAW_SERC.csv")) %>%
+#   bind_rows(fread("./data/2019_Water_Level_RAW_SERC.csv")) %>%
+#   mutate(Timestamp = mdy_hm(Timestamp))
+  
 # "pretty" labels for graph display 
 # not yet functional
 waterquality_labels <- c("Timestamp" = "Timestamp", 

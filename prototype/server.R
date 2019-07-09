@@ -13,9 +13,11 @@ function(input, output) {
       # create the select input UI element with only the relevant parameters listed
       # the selected argument refers back to itself in order to remember what was selected if and when 
       # the input has to reactively update to another changing input (such as time frame) 
+
       selectInput('parameter', 'Parameter', choices=parameter_list, 
                   selected = input$parameter, 
                   multiple = TRUE)
+      
     }
   })
   
@@ -24,14 +26,18 @@ function(input, output) {
     # filter by sites if one or more have been chosen 
     if(!is.null(input$sites)){
       get(gsub(" ", "", input$sensor)) %>%
-        filter(Site %in% input$site) %>%
-        filter(Timestamp > max(Timestamp) - hours(input$timeSpan))
+      filter(Site %in% input$site) %>%
+      #10.3 seconds
+      #filter(Timestamp > max(Timestamp) - hours(input$timeSpan))
+      filter(Timestamp > ymd(input$date_range[1]) & Timestamp < ymd(input$date_range[2]))
+      
       # otherwise return the entire dataset of the selected sensor
     } else {
       get(gsub(" ", "", input$sensor)) %>%
-        filter(Timestamp > max(Timestamp) - hours(input$timeSpan)) 
+        #filter(Timestamp > max(Timestamp) - hours(input$timeSpan)) 
+        filter(Timestamp > ymd(input$date_range[1]) & Timestamp < ymd(input$date_range[2]))
     }
-    
+
   })
   
   # Generate a plot of the data 
