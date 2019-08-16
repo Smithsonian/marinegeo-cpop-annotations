@@ -1,7 +1,8 @@
-# shiny app demo showing SERC and STRI water quality and met data
+# shiny app demo showing SERC and STRI water quality, water level, and met data
 # Global script runs first when initializing application
 # Packages and data are loaded 
 
+library(shinydashboard)
 library(shiny)
 library(lubridate)
 library(ggplot2)
