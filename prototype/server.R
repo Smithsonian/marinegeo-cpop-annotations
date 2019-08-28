@@ -69,6 +69,7 @@ function(input, output) {
   
   # Import files and append to the correct sensor dataframe
   importFiles <- function(subset){
+    
     # Filter to the list of files that need to be imported 
     import_subset <- filter(subset, imported == FALSE)
     
@@ -150,9 +151,14 @@ function(input, output) {
         select(Timestamp, Site, input$parameter) %>%
         # melt the data to long form
         gather(key="variable", value = "measurement", -Timestamp, -Site, na.rm = TRUE) %>%
-        ggplot(aes(Timestamp, measurement, color = Site)) + geom_line() + 
-        facet_grid(variable ~ .) + ylab("")
+        ggplot(aes(Timestamp, measurement, color = Site)) + 
+        geom_line() + 
+        facet_grid(variable ~ .) + 
+        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
+        ylab("") 
     })
+  }, height = function(){
+    input$GetScreenHeight * .6
   })
   
   # Download handler creates filename and prepares data for download
@@ -164,5 +170,4 @@ function(input, output) {
       write.csv(getSensorData(), file)
     }
   )
-  
 }

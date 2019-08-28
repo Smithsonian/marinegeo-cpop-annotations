@@ -30,3 +30,9 @@ parameters <- fread("./data/headers.csv")
 ignore_list <- c("Timestamp", "Site", "Status")
 
 
+jscode <-
+  '$(document).on("shiny:connected", function(e) {
+  var jsHeight = screen.height;
+  Shiny.onInputChange("GetScreenHeight",jsHeight);
+});
+'

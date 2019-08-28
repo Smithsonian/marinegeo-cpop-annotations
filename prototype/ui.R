@@ -46,7 +46,7 @@ body <- dashboardBody(
 
     ),
     column(width = 9,
-           
+           tags$script(jscode),
            plotOutput("plot")
 
     )
