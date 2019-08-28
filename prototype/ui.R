@@ -34,7 +34,11 @@ body <- dashboardBody(
                uiOutput('parameterSelector'),
 
                # button that triggers data import, if necessary, and triggers plot creation
-               actionButton("runQuery", "Visualize data")
+               actionButton("runQuery", "Visualize data"), 
+               
+               div(hr()),
+               
+               downloadButton("download", "Download selected data")
            )
            # box(width = NULL, status = "primary",
            #     downloadButton("downloadData", "Download Data") # Button to download the data for selected time span

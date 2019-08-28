@@ -155,4 +155,14 @@ function(input, output) {
     })
   })
   
+  # Download handler creates filename and prepares data for download
+  output$download <- downloadHandler(
+    filename = function(){
+      paste0("marinegeo_cpop-", Sys.Date(), ".csv")
+    },
+    content = function(file){
+      write.csv(getSensorData(), file)
+    }
+  )
+  
 }
