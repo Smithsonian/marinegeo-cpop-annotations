@@ -20,7 +20,7 @@ key <- as.data.frame(list(list.files("./data/")), col.names = "filepath") %>%
          # Imported tracks whether the application has imported particular datasets
          imported = FALSE) %>%
   # Separate file name into columns
-  separate(name, into = c("year", "sensor", "status", "site"), by = "_") %>%
+  separate(name, into = c("year", "sensor", "status", "site"), sep = "_") %>%
   mutate(sensor = gsub("([a-z])([A-Z])", "\\1 \\2", sensor, perl = TRUE)) %>%
   filter(status == "QAQC")
 
