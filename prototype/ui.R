@@ -28,8 +28,11 @@ body <- dashboardBody(
 
                # select a time range
                dateRangeInput("date_range", "Select a time range",
-                              start = "2017-03-18"),
+                              start = "2013-01-01"),
 
+               # button that triggers data import, if necessary, and triggers plot creation
+               actionButton("runQuery2", "Display Data Availability"),
+               
                # conditional dropdown for sensor parameters at selected site and sensor
                uiOutput('parameterSelector'),
 
@@ -45,10 +48,18 @@ body <- dashboardBody(
            # )
 
     ),
-    column(width = 9,
+    column(width = 9, 
            tags$script(jscode),
-           plotOutput("plot")
-
+           tabBox(
+             title = "Data Visualization",
+             # The id lets us use input$dataviz on the server to find the current tab
+             id = "dataviz", height = "550px",
+             tabPanel("Available Data", # plotOutput("availability")
+                      "available_data"),
+             tabPanel("Plot Data",
+                      plotOutput("plot"))
+           )
+           
     )
   )
 )
