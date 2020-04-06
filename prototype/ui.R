@@ -54,8 +54,8 @@ body <- dashboardBody(
              title = "Data Visualization",
              # The id lets us use input$dataviz on the server to find the current tab
              id = "dataviz", height = "550px",
-             tabPanel("Available Data", # plotOutput("availability")
-                      "available_data"),
+             tabPanel("Available Data", 
+                      plotOutput("availability")),
              tabPanel("Plot Data",
                       plotOutput("plot"))
            )

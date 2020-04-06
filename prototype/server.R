@@ -67,24 +67,24 @@ function(input, output) {
     
   })
   
-  # Action to take if run query button pressed
+  # # Action to take if run query button pressed
   # observeEvent(input$runQuery2, {
-  #   
+  # 
   #   year_start <- year(input$date_range[1])
   #   year_end <- year(input$date_range[2])
-  #   
-  #   subset <- data_tracker$df %>%
+  # 
+  #   subset <- key %>%
   #     filter(sensor %in% input$sensor) %>%
   #     filter(site %in% input$site) %>%
   #     filter(year >= year_start & year <= year_end)
-  #   
-  #   # if any files are not yet imported
-  #   if(nrow(subset) > 0 & !all(subset$imported)) {
-  #     importFiles(subset)
-  #   }
-  #   
-  # })
   # 
+  #   # if any files are not yet imported
+  #   # if(nrow(subset) > 0 & !all(subset$imported)) {
+  #   #   importFiles(subset)
+  #   # }
+  # 
+  # })
+
   # Import files and append to the correct sensor dataframe
   importFiles <- function(subset){
     
@@ -179,38 +179,41 @@ function(input, output) {
     input$GetScreenHeight * .6
   })
   
-  # output$availability <- renderPlot({
-  #   #if(is.null(input$parameter) | input$sensor == "none selected"){return(NULL)}
-  #   if(input$runQuery2 == 0){return(NULL)}
-  #   
-  #   # Trigger plot creation when run query button is clicked
-  #   input$runQuery2
-  #   
-  #   # Isolate prevents graph from updating whenever other inputs change
-  #   isolate({
-  #     # Generates a facet grid plot for one to many parameters
-  #     key %>%
-  #       # filter(site == "SERC") %>%
-  #       ggplot(mapping = aes(x = year, y = sensor)) + 
-  #       geom_tile(color = "white") +
-  #       coord_equal() +
-  #       theme_bw() +
-  #       theme(panel.grid.major = element_blank(),
-  #             # plot.title = element_text(hjust = 0.5, size=24),
-  #             # panel.grid.minor = element_blank(),
-  #             axis.title.x = element_blank(),
-  #             axis.title.y = element_blank(),
-  #             # legend.position="right", # position of legend or none
-  #             # legend.direction="vertical", # orientation of legend
-  #             legend.title= element_blank(), # no title for legend
-  #             # axis.text.x=element_text(size=10, angle=90, vjust=0.5),
-  #             # axis.text.y=element_text(size=10)
-  #       ) +
-  #       facet_wrap(~site, dir = "v")
-  #   })
-  # }, height = function(){
-  #   input$GetScreenHeight * .6
-  # })
+  output$availability <- renderPlot({
+    #if(is.null(input$parameter) | input$sensor == "none selected"){return(NULL)}
+    if(input$runQuery2 == 0){return(NULL)}
+
+    # Trigger plot creation when run query button is clicked
+    input$runQuery2
+
+    # Isolate prevents graph from updating whenever other inputs change
+    isolate({
+      # Generates a facet grid plot for one to many parameters
+      key %>%
+        filter(sensor %in% input$sensor) %>%
+        filter(site %in% input$site) %>%
+        filter(year >= year(input$date_range[1]) & year <= year(input$date_range[2])) %>%
+        # filter(site == "SERC") %>%
+        ggplot(mapping = aes(x = year, y = sensor)) +
+        geom_tile(color = "white") +
+        coord_equal() +
+        theme_bw() +
+        theme(panel.grid.major = element_blank(),
+              # plot.title = element_text(hjust = 0.5, size=24),
+              # panel.grid.minor = element_blank(),
+              axis.title.x = element_blank(),
+              axis.title.y = element_blank(),
+              # legend.position="right", # position of legend or none
+              # legend.direction="vertical", # orientation of legend
+              legend.title= element_blank(), # no title for legend
+              # axis.text.x=element_text(size=10, angle=90, vjust=0.5),
+              # axis.text.y=element_text(size=10)
+        ) +
+        facet_wrap(~site, dir = "v")
+    })
+  }, height = function(){
+    input$GetScreenHeight * .6
+  })
   
   # Download handler creates filename and prepares data for download
   output$download <- downloadHandler(
