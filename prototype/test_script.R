@@ -1,9 +1,9 @@
 ## Junk script for testing out app components 
 
 dataPresence <- function(df){
-  df %>%
+  key %>%
     # filter(site == "SERC") %>%
-    ggplot(mapping = aes(x = year, y = sensor)) + 
+    ggplot(mapping = aes(x = year, y = site, fill = site)) + 
     geom_tile(color = "white") +
     coord_equal() +
     theme_bw() +
@@ -12,13 +12,14 @@ dataPresence <- function(df){
           # panel.grid.minor = element_blank(),
           axis.title.x = element_blank(),
           axis.title.y = element_blank(),
+          # legend(),
           # legend.position="right", # position of legend or none
           # legend.direction="vertical", # orientation of legend
           legend.title= element_blank(), # no title for legend
           # axis.text.x=element_text(size=10, angle=90, vjust=0.5),
           # axis.text.y=element_text(size=10)
     ) +
-    facet_wrap(~site, dir = "v")
+    facet_wrap(~sensor, dir = "v")
 }
 # dataPresence(key)
 

@@ -171,7 +171,7 @@ function(input, output) {
         gather(key="variable", value = "measurement", -Timestamp, -Site, na.rm = TRUE) %>%
         ggplot(aes(Timestamp, measurement, color = Site)) + 
         geom_line() + 
-        facet_grid(variable ~ .) + 
+        facet_grid(variable ~ ., scales = "free") + 
         theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
         ylab("") 
     })
@@ -181,20 +181,20 @@ function(input, output) {
   
   output$availability <- renderPlot({
     #if(is.null(input$parameter) | input$sensor == "none selected"){return(NULL)}
-    if(input$runQuery2 == 0){return(NULL)}
+    # if(input$runQuery2 == 0){return(NULL)}
 
     # Trigger plot creation when run query button is clicked
-    input$runQuery2
+    # input$runQuery2
 
     # Isolate prevents graph from updating whenever other inputs change
-    isolate({
+    # isolate({
       # Generates a facet grid plot for one to many parameters
       key %>%
-        filter(sensor %in% input$sensor) %>%
-        filter(site %in% input$site) %>%
-        filter(year >= year(input$date_range[1]) & year <= year(input$date_range[2])) %>%
+        # filter(sensor %in% input$sensor) %>%
+        # filter(site %in% input$site) %>%
+        # filter(year >= year(input$date_range[1]) & year <= year(input$date_range[2])) %>%
         # filter(site == "SERC") %>%
-        ggplot(mapping = aes(x = year, y = sensor)) +
+        ggplot(mapping = aes(x = year, y = sensor, fill = sensor)) +
         geom_tile(color = "white") +
         coord_equal() +
         theme_bw() +
@@ -210,7 +210,7 @@ function(input, output) {
               # axis.text.y=element_text(size=10)
         ) +
         facet_wrap(~site, dir = "v")
-    })
+    # })
   }, height = function(){
     input$GetScreenHeight * .6
   })

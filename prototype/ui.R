@@ -7,6 +7,7 @@ header <- dashboardHeader(
 )
 
 body <- dashboardBody(
+  tags$script(jscode),
   fluidRow(
     box(status = "primary",
         solidHeader = F,
@@ -17,8 +18,8 @@ body <- dashboardBody(
                  div(img(src="Logomark_MarineGEO_Tennenbaum_RGB.png", width=250))),
           column(width = 8, offset = 2,  align = "center", "Beta version: Please contact marinegeo@si.edu with any questions or issues."))),
     
-    column(width = 3,
-           box(width = NULL, status = "primary",
+    # column(width = 3,
+           box(width = 3, status = "primary",
                # Dropdown selector for sites
                selectInput("site", "Select one or more sites to display",
                            unique(key$site), multiple = TRUE),
@@ -30,8 +31,8 @@ body <- dashboardBody(
                dateRangeInput("date_range", "Select a time range",
                               start = "2013-01-01"),
 
-               # button that triggers data import, if necessary, and triggers plot creation
-               actionButton("runQuery2", "Display Data Availability"),
+               # # button that triggers data import, if necessary, and triggers plot creation
+               # actionButton("runQuery2", "Display Data Availability"),
                
                # conditional dropdown for sensor parameters at selected site and sensor
                uiOutput('parameterSelector'),
@@ -47,20 +48,41 @@ body <- dashboardBody(
            #     downloadButton("downloadData", "Download Data") # Button to download the data for selected time span
            # )
 
-    ),
-    column(width = 9, 
-           tags$script(jscode),
+    # )
+    ,
+  #   # column(width = 5,
+  #          # tags$script(jscode),
+  #          box(title = "Data Visualization",
+  #              width = 5,
+  #              status = "primary",
+  #              # tags$script(jscode),
+  #              # "box content"
+  #              plotOutput("plot")
+  #              )
+  #   # )
+  # ,
+  #   # column(width = 4,
+  #          # tags$script(jscode),
+  #          box(title = "Data Availability",
+  #              width = 4,
+  #              status = "primary",
+  #              # "Box content"
+  #              plotOutput("availablility")
+  #              )
+  #          # )
+
+                      
+           # tags$script(jscode),
            tabBox(
              title = "Data Visualization",
+             width = 9,
              # The id lets us use input$dataviz on the server to find the current tab
              id = "dataviz", height = "550px",
-             tabPanel("Available Data", 
+             tabPanel("Available Data",
                       plotOutput("availability")),
              tabPanel("Plot Data",
                       plotOutput("plot"))
            )
-           
-    )
   )
 )
 
