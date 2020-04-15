@@ -67,23 +67,6 @@ function(input, output) {
     
   })
   
-  # # Action to take if run query button pressed
-  # observeEvent(input$runQuery2, {
-  # 
-  #   year_start <- year(input$date_range[1])
-  #   year_end <- year(input$date_range[2])
-  # 
-  #   subset <- key %>%
-  #     filter(sensor %in% input$sensor) %>%
-  #     filter(site %in% input$site) %>%
-  #     filter(year >= year_start & year <= year_end)
-  # 
-  #   # if any files are not yet imported
-  #   # if(nrow(subset) > 0 & !all(subset$imported)) {
-  #   #   importFiles(subset)
-  #   # }
-  # 
-  # })
 
   # Import files and append to the correct sensor dataframe
   importFiles <- function(subset){
@@ -154,6 +137,24 @@ function(input, output) {
 
   }
   
+  # use tabsetPanel 'id' argument to change tabs when plot data is selected
+  # observeEvent(input$runQuery, {
+  #   updateTabsetPanel(session, "dataviz", "dataPlot")
+  #   })
+  
+  plotInput <- reactive({
+    # Generates a facet grid plot for one to many parameters
+    p <- getSensorData() %>%
+      select(Timestamp, Site, input$parameter) %>%
+      # melt the data to long form
+      gather(key="variable", value = "measurement", -Timestamp, -Site, na.rm = TRUE) %>%
+      ggplot(aes(Timestamp, measurement, color = Site)) + 
+      geom_line() + 
+      facet_grid(variable ~ ., scales = "free") + 
+      theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
+      ylab("")
+  })
+  
   # Generate a plot of the data 
   output$plot <- renderPlot({
     #if(is.null(input$parameter) | input$sensor == "none selected"){return(NULL)}
@@ -164,16 +165,7 @@ function(input, output) {
     
     # Isolate prevents graph from updating whenever other inputs change
     isolate({
-      # Generates a facet grid plot for one to many parameters
-      getSensorData() %>%
-        select(Timestamp, Site, input$parameter) %>%
-        # melt the data to long form
-        gather(key="variable", value = "measurement", -Timestamp, -Site, na.rm = TRUE) %>%
-        ggplot(aes(Timestamp, measurement, color = Site)) + 
-        geom_line() + 
-        facet_grid(variable ~ ., scales = "free") + 
-        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
-        ylab("") 
+      print(plotInput())
     })
   }, height = function(){
     input$GetScreenHeight * .6
@@ -224,4 +216,13 @@ function(input, output) {
       write.csv(getSensorData(), file)
     }
   )
+  
+  # Download the figure
+  output$downloadFigure <- downloadHandler(
+    filename = function(){
+      paste0("marinegeo_cpop-", Sys.Date(), ".png")
+    },
+    content = function(file) {
+      ggsave(file, plot = plotInput(), device = "png")
+    })
 }

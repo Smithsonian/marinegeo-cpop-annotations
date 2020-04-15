@@ -42,7 +42,9 @@ body <- dashboardBody(
                
                div(hr()),
                
-               downloadButton("download", "Download selected data")
+               downloadButton("download", "Download selected data"),
+               
+               downloadButton("downloadFigure", "Download figure")
            )
            # box(width = NULL, status = "primary",
            #     downloadButton("downloadData", "Download Data") # Button to download the data for selected time span
@@ -72,15 +74,16 @@ body <- dashboardBody(
   #          # )
 
                       
-           # tags$script(jscode),
            tabBox(
              title = "Data Visualization",
              width = 9,
              # The id lets us use input$dataviz on the server to find the current tab
              id = "dataviz", height = "550px",
-             tabPanel("Available Data",
+             tabPanel(value = "dataAvailability",
+                      "Available Data",
                       plotOutput("availability")),
-             tabPanel("Plot Data",
+             tabPanel(value = "dataPlot",
+                      "Plot Data",
                       plotOutput("plot"))
            )
   )
