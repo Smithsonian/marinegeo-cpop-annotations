@@ -81,7 +81,9 @@ body <- dashboardBody(
              id = "dataviz", height = "550px",
              tabPanel(value = "dataAvailability",
                       "Available Data",
-                      plotOutput("availability")),
+                      plotOutput("availability",
+                                 click = "plot_click"),
+                      verbatimTextOutput("info")),
              tabPanel(value = "dataPlot",
                       "Plot Data",
                       plotOutput("plot"))

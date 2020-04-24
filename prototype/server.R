@@ -181,30 +181,31 @@ function(input, output) {
     # Isolate prevents graph from updating whenever other inputs change
     # isolate({
       # Generates a facet grid plot for one to many parameters
-      key %>%
-        # filter(sensor %in% input$sensor) %>%
-        # filter(site %in% input$site) %>%
-        # filter(year >= year(input$date_range[1]) & year <= year(input$date_range[2])) %>%
-        # filter(site == "SERC") %>%
-        ggplot(mapping = aes(x = year, y = sensor, fill = sensor)) +
-        geom_tile(color = "white") +
-        coord_equal() +
-        theme_bw() +
-        theme(panel.grid.major = element_blank(),
-              # plot.title = element_text(hjust = 0.5, size=24),
-              # panel.grid.minor = element_blank(),
-              axis.title.x = element_blank(),
-              axis.title.y = element_blank(),
-              # legend.position="right", # position of legend or none
-              # legend.direction="vertical", # orientation of legend
-              legend.title= element_blank(), # no title for legend
-              # axis.text.x=element_text(size=10, angle=90, vjust=0.5),
-              # axis.text.y=element_text(size=10)
-        ) +
-        facet_wrap(~site, dir = "v")
+    dataset %>%
+      ggplot(mapping = aes(x = Year_Month, y = Sensor, fill = Sensor)) +
+      geom_tile(color = "white") +
+      # coord_equal() +
+      theme_bw() +
+      theme(panel.grid.major = element_blank(),
+            # plot.title = element_text(hjust = 0.5, size=24),
+            # panel.grid.minor = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank(),
+            legend.position="none", # position of legend or none
+            # legend.direction="vertical", # orientation of legend
+            legend.title= element_blank(), # no title for legend
+            # axis.text.x=element_text(size=10, angle=90, vjust=0.5),
+            # axis.text.y=element_text(size=10)
+      ) +
+      facet_wrap(~Site, dir = "v")
     # })
   }, height = function(){
     input$GetScreenHeight * .6
+  })
+  
+  output$info <- renderText({
+    res <- nearPoints(dataset, input$plot_click)
+    paste0("Date = ", res$Year_Month, "\nSensor = ", res$Sensor)
   })
   
   # Download handler creates filename and prepares data for download
