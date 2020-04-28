@@ -27,8 +27,8 @@ body <- dashboardBody(
                # Does not currently update dynamically: All sensors will be listed if a site is selected that doesn't have all possible sensors
                selectInput("sensor", "Select a sensor", c("none selected", unique(key$sensor))),
 
-               # select a time range
-               dateRangeInput("date_range", "Select a time range",
+               # select a date range
+               dateRangeInput("date_range", "Select a date range",
                               start = "2013-01-01"),
 
                # # button that triggers data import, if necessary, and triggers plot creation
@@ -82,7 +82,8 @@ body <- dashboardBody(
              tabPanel(value = "dataAvailability",
                       "Available Data",
                       plotOutput("availability",
-                                 click = "plot_click"),
+                                 brush = brushOpts(id = "plot_brush",
+                                                   direction = "x")),
                       verbatimTextOutput("info")),
              tabPanel(value = "dataPlot",
                       "Plot Data",

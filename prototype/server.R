@@ -181,8 +181,10 @@ function(input, output) {
     # Isolate prevents graph from updating whenever other inputs change
     # isolate({
       # Generates a facet grid plot for one to many parameters
-    dataset %>%
-      ggplot(mapping = aes(x = Year_Month, y = Sensor, fill = Sensor)) +
+    date_log %>%
+      select(Site, Sensor, Date_Rounded) %>%
+      distinct() %>%
+      ggplot(mapping = aes(x = Date_Rounded, y = Sensor, fill = Sensor)) +
       geom_tile(color = "white") +
       # coord_equal() +
       theme_bw() +
@@ -203,9 +205,11 @@ function(input, output) {
     input$GetScreenHeight * .6
   })
   
+  # this will be translated into making the date slider reactive
   output$info <- renderText({
-    res <- nearPoints(dataset, input$plot_click)
-    paste0("Date = ", res$Year_Month, "\nSensor = ", res$Sensor)
+    res <- brushedPoints(date_log, input$plot_brush)
+    paste0("Date min = ", min(res$Date_Rounded), 
+           "\nDate max = ", max(res$Date_Rounded))
   })
   
   # Download handler creates filename and prepares data for download
