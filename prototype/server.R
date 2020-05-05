@@ -1,7 +1,10 @@
 # shiny app demo showing SERC and STRI water quality and met data
 
-
 function(input, output) {
+  
+  # source functions employed by the app
+  source("./R/app-functions.R", local = TRUE)
+  
   # Turn key into a reactive dataframe to monitor which datasets have been imported
   data_tracker <- reactiveValues(df = key)
   
@@ -39,16 +42,6 @@ function(input, output) {
     }
   })
   
-  # Obtains parameters only present for selected sensors
-  # Provides parameters selectInput options
-  getParameters <- function(){
-    current_parameters <- parameters %>%
-      filter(sensor %in% tolower(gsub(" ", "_", input$sensor))) %>%
-      filter(!(cols %in% ignore_list))
-    
-    return(unique(current_parameters$cols))
-  }
-  
   # Action to take if run query button pressed
   observeEvent(input$runQuery, {
     
@@ -66,76 +59,6 @@ function(input, output) {
     }
     
   })
-  
-
-  # Import files and append to the correct sensor dataframe
-  importFiles <- function(subset){
-    
-    # Filter to the list of files that need to be imported 
-    import_subset <- filter(subset, imported == FALSE)
-    
-    # If there's only one CSV that will need to be imported
-    if(nrow(import_subset) == 1) {
-      # Paste together directory and filepath
-      data <- fread(paste0("./data/", import_subset$filepath)) %>%
-        mutate(Timestamp = mdy_hm(Timestamp))
-      
-      # if there are multiple CSVs that need to be imported
-    } else if(nrow(import_subset) > 1){
-      data <- rbindlist(lapply(paste0("./data/", import_subset$filepath), fread), fill=TRUE) %>%
-        mutate(Timestamp = mdy_hm(Timestamp))
-    }
-    
-    # Update data tracker to indicate that certain files have been imported and will not need to be re-imported
-    data_tracker$df <- mutate(data_tracker$df, 
-                              imported = ifelse(filepath %in% import_subset$filepath, TRUE, imported))
-    
-    # Attach the data to the correct dataframe based on the selected sensor
-    # If no data has been imported for a given sensor, replace the reactiveValues object
-    # If there is data, append it
-    if(first(subset$sensor) == "MET"){
-      if(nrow(MET_data$df) == 0) {
-        MET_data$df <- data
-      } else   MET_data$df <- bind_rows(MET_data$df, data)
-        
-    } else if(first(subset$sensor) == "Water Quality"){
-      if(nrow(WaterQuality_data$df) == 0) {
-        WaterQuality_data$df <- data
-      } else   WaterQuality_data$df <- bind_rows(WaterQuality_data$df, data)
-      
-    } else if (first(subset$sensor) == "Water Level") {
-      if(nrow(WaterLevel_data$df) == 0) {
-        WaterLevel_data$df <- data
-      } else   WaterLevel_data$df <- bind_rows(WaterLevel_data$df, data)
-    }
-  }
-  
-  # returns the current subset of data based on site(s) and sensor
-  getSensorData <- function(){
-    if(input$sensor == "MET"){
-      MET_data$df %>%
-        filter(Site %in% input$site) %>%
-        filter(Timestamp > ymd(input$date_range[1]) & Timestamp < ymd(input$date_range[2]))
-      
-    } else if(input$sensor == "Water Quality"){
-      WaterQuality_data$df %>%
-        filter(Site %in% input$site) %>%
-        filter(Timestamp > ymd(input$date_range[1]) & Timestamp < ymd(input$date_range[2]))
-      
-    } else if (input$sensor == "Water Level") {
-      WaterLevel_data$df %>%
-        filter(Site %in% input$site) %>%
-        filter(Timestamp > ymd(input$date_range[1]) & Timestamp < ymd(input$date_range[2]))
-    }
-    
-    # Previous code, I'd like to return to but reactiveValues do not work with get() apparently
-    # Subset currently selected sensor data by site and time selections
-    #get(paste0(gsub(" ", "", input$sensor),"_data$df")) %>%
-      # filter(Site %in% input$site) %>%
-      # filter(Timestamp > ymd(input$date_range[1]) & Timestamp < ymd(input$date_range[2]))
-    #}
-
-  }
   
   # use tabsetPanel 'id' argument to change tabs when plot data is selected
   # observeEvent(input$runQuery, {
@@ -172,14 +95,7 @@ function(input, output) {
   })
   
   output$availability <- renderPlot({
-    #if(is.null(input$parameter) | input$sensor == "none selected"){return(NULL)}
-    # if(input$runQuery2 == 0){return(NULL)}
 
-    # Trigger plot creation when run query button is clicked
-    # input$runQuery2
-
-    # Isolate prevents graph from updating whenever other inputs change
-    # isolate({
       # Generates a facet grid plot for one to many parameters
     date_log %>%
       select(Site, Sensor, Date_Rounded) %>%
@@ -200,7 +116,7 @@ function(input, output) {
             # axis.text.y=element_text(size=10)
       ) +
       facet_wrap(~Site, dir = "v")
-    # })
+    
   }, height = function(){
     input$GetScreenHeight * .6
   })

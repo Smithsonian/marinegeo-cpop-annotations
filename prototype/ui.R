@@ -42,7 +42,9 @@ body <- dashboardBody(
                
                div(hr()),
                
-               downloadButton("download", "Download selected data"),
+               downloadButton("download", "Download plotted data"),
+               
+               div(hr()),
                
                downloadButton("downloadFigure", "Download figure")
            )
@@ -52,28 +54,6 @@ body <- dashboardBody(
 
     # )
     ,
-  #   # column(width = 5,
-  #          # tags$script(jscode),
-  #          box(title = "Data Visualization",
-  #              width = 5,
-  #              status = "primary",
-  #              # tags$script(jscode),
-  #              # "box content"
-  #              plotOutput("plot")
-  #              )
-  #   # )
-  # ,
-  #   # column(width = 4,
-  #          # tags$script(jscode),
-  #          box(title = "Data Availability",
-  #              width = 4,
-  #              status = "primary",
-  #              # "Box content"
-  #              plotOutput("availablility")
-  #              )
-  #          # )
-
-                      
            tabBox(
              title = "Data Visualization",
              width = 9,
