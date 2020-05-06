@@ -96,7 +96,7 @@ function(input, output) {
   
   output$availability <- renderPlot({
 
-      # Generates a facet grid plot for one to many parameters
+    # Generates a facet grid plot for one to many parameters
     date_log %>%
       select(Site, Sensor, Date_Rounded) %>%
       distinct() %>%
@@ -126,6 +126,21 @@ function(input, output) {
     res <- brushedPoints(date_log, input$plot_brush)
     paste0("Date min = ", min(res$Date_Rounded), 
            "\nDate max = ", max(res$Date_Rounded))
+  })
+  
+  
+  # reactive({
+  #   res <- brushedPoints(date_log, input$plot_brush)
+  #   dateRangeInput(session, "date_range",
+  #                        start = min(res$Date_Rounded),
+  #                        end = max(res$Date_Rounded))
+  # })
+  
+  output$date_range <- renderUI({
+    res <- brushedPoints(date_log, input$plot_brush)
+    dateRangeInput("dates", label = "Date range", 
+                   start = min(res$Date_Rounded), end = max(res$Date_Rounded))
+
   })
   
   # Download handler creates filename and prepares data for download

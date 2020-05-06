@@ -28,8 +28,9 @@ body <- dashboardBody(
                selectInput("sensor", "Select a sensor", c("none selected", unique(key$sensor))),
 
                # select a date range
-               dateRangeInput("date_range", "Select a date range",
-                              start = "2013-01-01"),
+               # dateRangeInput("date_range", "Select a date range",
+               #                start = "2013-01-01"),
+               uiOutput("date_range"),
 
                # # button that triggers data import, if necessary, and triggers plot creation
                # actionButton("runQuery2", "Display Data Availability"),
