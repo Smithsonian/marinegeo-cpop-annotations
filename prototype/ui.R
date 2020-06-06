@@ -28,7 +28,7 @@ body <- dashboardBody(
 
                # select a time range
                dateRangeInput("date_range", "Select a time range",
-                              start = "2017-03-18"),
+                              start = "2011-03-18"),
 
                # conditional dropdown for sensor parameters at selected site and sensor
                uiOutput('parameterSelector'),
@@ -47,7 +47,12 @@ body <- dashboardBody(
     ),
     column(width = 9,
            tags$script(jscode),
-           plotOutput("plot")
+           plotOutput("plot",
+                      brush = brushOpts(
+                        id = "plot_brush",
+                        direction = "x", # brush will only move horizontally
+                        resetOnNew = T # brush will be reset when the plot is updated
+                      ))
 
     )
   )

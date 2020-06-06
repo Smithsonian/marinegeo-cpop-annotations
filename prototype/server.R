@@ -153,6 +153,7 @@ function(input, output) {
         gather(key="variable", value = "measurement", -Timestamp, -Site, na.rm = TRUE) %>%
         ggplot(aes(Timestamp, measurement, color = Site)) + 
         geom_line() + 
+        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
         facet_grid(variable ~ .) + 
         theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
         ylab("") 
@@ -170,4 +171,17 @@ function(input, output) {
       write.csv(getSensorData(), file)
     }
   )
+  
+  observeEvent(input$plot1_dblclick, {
+    brush <- input$plot1_brush
+    if (!is.null(brush)) {
+      ranges$x <- c(brush$xmin, brush$xmax)
+      ranges$y <- c(brush$ymin, brush$ymax)
+      
+    } else {
+      ranges$x <- NULL
+      ranges$y <- NULL
+    }
+  })
+  
 }
