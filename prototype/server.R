@@ -10,6 +10,8 @@ function(input, output) {
                                           code = as.character(NA), 
                                           .rows = 0))
   
+  
+  ## Load Data ####
   # Action to take if run query button pressed
   observeEvent(input$loadData, {
     
@@ -42,24 +44,27 @@ function(input, output) {
     
     # Convert timestamp to POSIXct
     current_data$df <- current_data$df %>%
-      mutate(timestamp = ymd_hms(timestamp))
-      
+      mutate(timestamp = ymd_hms(timestamp),
+             qc_tech_flag = FALSE)
+    
   }
   
+  ## Plots ####
   # Generate a plot of the data 
   output$plot_qc <- renderPlot({
     
     # Prevents error message from getting written to UI upon app startup
     tryCatch({
     current_data$df %>%
-      select(timestamp, input$parameter_qc) %>%
+      select(timestamp, qc_tech_flag, input$parameter_qc) %>%
       # melt the data to long form
-      gather(key="variable", value = "measurement", -timestamp, na.rm = TRUE) %>%
-      ggplot(aes(timestamp, measurement)) +
+      gather(key="variable", value = "measurement", -timestamp, -qc_tech_flag, na.rm = TRUE) %>%
+      ggplot(aes(timestamp, measurement, color = qc_tech_flag)) +
       geom_point() +
       coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
       # #facet_grid(variable ~ .) +
-      theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
+      theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
+            legend.position = "top") +
       ylab("")
 
       }, error = function(e){
@@ -89,8 +94,30 @@ function(input, output) {
     
   })
   
-  # Adapted from https://shiny.rstudio.com/gallery/plot-interaction-zoom.html
+  output$plot_facet <- renderPlot({
+    # Plot allows techs to visualize 1 to all parameters without slowly moving from parameter to parameter on the main panel
+    # Defaults to null until parameters are selected in UI
+    if(!is.null(input$facet_parameters)){
+      # Prevents error message from getting written to UI upon app startup
+      tryCatch({
+        current_data$df %>%
+          select(timestamp, input$facet_parameters) %>%
+          # melt the data to long form
+          gather(key="variable", value = "measurement", -timestamp, na.rm = TRUE) %>%
+          ggplot(aes(timestamp, measurement)) +
+          geom_point() +
+          # coord_cartesian(xlim = ranges$x, expand = FALSE) + #, ylim = ranges$y
+          facet_grid(variable ~ .) +
+          theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
+          ylab("")
+        
+      }, error = function(e){
+        
+      })
+    }
+  })
   
+  # Adapted from https://shiny.rstudio.com/gallery/plot-interaction-zoom.html
   ranges <- reactiveValues(x = NULL, y = NULL)
   
   observeEvent(input$plot_dblclick, {
@@ -113,6 +140,7 @@ function(input, output) {
 
   })
   
+  ## Datatable output ####
   output$table_selected_points <- renderDataTable({
     
     # By default, the table will show the timestamp and the two parameters selected on the left panel
@@ -143,29 +171,8 @@ function(input, output) {
       datatable(summary)
     }
   })
-  output$plot_facet <- renderPlot({
-    # Plot allows techs to visualize 1 to all parameters without slowly moving from parameter to parameter on the main panel
-    # Defaults to null until parameters are selected in UI
-    if(!is.null(input$facet_parameters)){
-      # Prevents error message from getting written to UI upon app startup
-      tryCatch({
-        current_data$df %>%
-          select(timestamp, input$facet_parameters) %>%
-          # melt the data to long form
-          gather(key="variable", value = "measurement", -timestamp, na.rm = TRUE) %>%
-          ggplot(aes(timestamp, measurement)) +
-          geom_point() +
-          # coord_cartesian(xlim = ranges$x, expand = FALSE) + #, ylim = ranges$y
-          facet_grid(variable ~ .) +
-          theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
-          ylab("")
-        
-      }, error = function(e){
-        
-      })
-    }
-  })
   
+  ## Apply QC logic ####
   observeEvent(input$apply_qc, {
     
     # If the brush functionality is "select", all selected QC codes will be associated with each selected point
@@ -190,25 +197,17 @@ function(input, output) {
         select(-input$parameter_qc) %>%
         separate_rows(code, sep=",") %>%
         bind_rows(qc_output$df)
-      
-      # output <- brush_subset %>%
-      #   mutate(code = codes,
-      #          timestamp = as.character(timestamp),
-      #          parameter = input$parameter_qc) %>%
-      #   select(-input$parameter_qc)
-      # 
-      # print(output)
-      # print(str(output))
+
+      current_data$df <- current_data$df %>%
+        mutate(qc_tech_flag = ifelse(timestamp %in% brush_subset$timestamp,
+                                        TRUE, qc_tech_flag))
       
     } else {
       showModal(modalDialog(
         title = "Select data mode not activated",
         "QC flags will only be associated with data while the \"Select\" mode is active above. Move toggle from \"Zoom\" to \"Select\""
       ))
-      
-      
     }
-    
   })
   
   output$remove_flags <- renderUI({
@@ -221,8 +220,17 @@ function(input, output) {
   observeEvent(input$confirm_removal,{
     
     if(!is.null(input$select_remove_flags)){
+      points_to_remove <- qc_output$df %>%
+        mutate(timestamp = ymd_hms(timestamp)) %>%
+        filter(code %in% input$select_remove_flags) 
+      
       qc_output$df <- qc_output$df %>%
+        mutate(timestamp = ymd_hms(timestamp)) %>%
         filter(!(code %in% input$select_remove_flags))
+      
+      current_data$df <- current_data$df %>%
+        mutate(qc_tech_flag = ifelse(timestamp %in% points_to_remove$timestamp & !(timestamp %in% qc_output$df$timestamp),
+                                     FALSE, qc_tech_flag))
     }
   })
 }
