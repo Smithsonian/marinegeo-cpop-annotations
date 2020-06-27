@@ -2,186 +2,227 @@
 
 
 function(input, output) {
-  # Turn key into a reactive dataframe to monitor which datasets have been imported
-  data_tracker <- reactiveValues(df = key)
-  
-  # Initiate empty objects that will store each sensor type's data as they're imported
-  MET_data <- reactiveValues(df = data.frame())
-  WaterLevel_data <- reactiveValues(df = data.frame())
-  WaterQuality_data <- reactiveValues(df = data.frame())
-  
-  # builds ui dropdown selctor for the sensor variables from all the valid dataframe column names
-  output$parameterSelector = renderUI({
-    
-    if(input$sensor == "none selected" | is.null(input$site)){
-      
-      div(
-        "Select a site and sensor to view available parameters",
-      
-        selectInput('parameter', 'Parameter', choices=c(), 
-                   multiple = TRUE)
-        )
-      
-    } else{
-
-      # select all the column names in csv that are not in ignore list
-      # parameter_list <- colnames(getSensorData())[!names(getSensorData()) %in% ignore_list]
-      parameter_list <- getParameters()
-      
-      # create the select input UI element with only the relevant parameters listed
-      # the selected argument refers back to itself in order to remember what was selected if and when 
-      # the input has to reactively update to another changing input (such as time frame) 
-      
-      selectInput('parameter', 'Parameter', choices=parameter_list, 
-                  selected = input$parameter, 
-                  multiple = TRUE)
-      
-    }
-  })
-  
-  # Obtains parameters only present for selected sensors
-  # Provides parameters selectInput options
-  getParameters <- function(){
-    current_parameters <- parameters %>%
-      filter(sensor %in% tolower(gsub(" ", "_", input$sensor))) %>%
-      filter(!(cols %in% ignore_list))
-    
-    return(unique(current_parameters$cols))
-  }
+  # Initiate empty object to hold imported data
+  current_data <- reactiveValues(df=data.frame())
+  # Empty dataframe will hold points selected for QC and associated QC codes
+  qc_output <- reactiveValues(df = tibble(timestamp = as.character(NA),
+                                          parameter = as.character(NA),
+                                          code = as.character(NA), 
+                                          .rows = 0))
   
   # Action to take if run query button pressed
-  observeEvent(input$runQuery, {
+  observeEvent(input$loadData, {
     
-    year_start <- year(input$date_range[1])
-    year_end <- year(input$date_range[2])
+    # Create an object for the selected timestamp in the UI
+    selected_time <- input$date_range
+
+    # Get output path from key for given timestamp
+    subset <- key %>%
+      filter(full_timestamp == selected_time)
+
+    # Some files may be duplicated in the directory
+    # This will need to fixed outside of this application, but will use unique() for now
+    filepath <- unique(subset$output)
     
-    subset <- data_tracker$df %>%
-      filter(sensor %in% input$sensor) %>%
-      filter(site %in% input$site) %>%
-      filter(year >= year_start & year <= year_end)
-    
-    # if any files are not yet imported
-    if(nrow(subset) > 0 & !all(subset$imported)) {
-      importFiles(subset)
+    if(length(filepath) == 1){
+      importFiles(filepath)
+    } else {
+      showModal(modalDialog(
+        title = "Duplicate timestamp",
+        "Multiple files exist for the current timestamp. Each file should represent a unique timestamp." 
+      ))
     }
-    
   })
   
-  # Import files and append to the correct sensor dataframe
-  importFiles <- function(subset){
+  # Import files and append to reactive object
+  importFiles <- function(filepath){
     
-    # Filter to the list of files that need to be imported 
-    import_subset <- filter(subset, imported == FALSE)
+    # Read in CSV given filepath
+    current_data$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/TEST_STRI/", filepath)) 
     
-    # If there's only one CSV that will need to be imported
-    if(nrow(import_subset) == 1) {
-      # Paste together directory and filepath
-      data <- fread(paste0("./data/", import_subset$filepath)) %>%
-        mutate(Timestamp = mdy_hm(Timestamp))
+    # Convert timestamp to POSIXct
+    current_data$df <- current_data$df %>%
+      mutate(timestamp = ymd_hms(timestamp))
       
-      # if there are multiple CSVs that need to be imported
-    } else if(nrow(import_subset) > 1){
-      data <- rbindlist(lapply(paste0("./data/", import_subset$filepath), fread), fill=TRUE) %>%
-        mutate(Timestamp = mdy_hm(Timestamp))
-    }
-    
-    # Update data tracker to indicate that certain files have been imported and will not need to be re-imported
-    data_tracker$df <- mutate(data_tracker$df, 
-                              imported = ifelse(filepath %in% import_subset$filepath, TRUE, imported))
-    
-    # Attach the data to the correct dataframe based on the selected sensor
-    # If no data has been imported for a given sensor, replace the reactiveValues object
-    # If there is data, append it
-    if(first(subset$sensor) == "MET"){
-      if(nrow(MET_data$df) == 0) {
-        MET_data$df <- data
-      } else   MET_data$df <- bind_rows(MET_data$df, data)
-        
-    } else if(first(subset$sensor) == "Water Quality"){
-      if(nrow(WaterQuality_data$df) == 0) {
-        WaterQuality_data$df <- data
-      } else   WaterQuality_data$df <- bind_rows(WaterQuality_data$df, data)
-      
-    } else if (first(subset$sensor) == "Water Level") {
-      if(nrow(WaterLevel_data$df) == 0) {
-        WaterLevel_data$df <- data
-      } else   WaterLevel_data$df <- bind_rows(WaterLevel_data$df, data)
-    }
-  }
-  
-  # returns the current subset of data based on site(s) and sensor
-  getSensorData <- function(){
-    if(input$sensor == "MET"){
-      MET_data$df %>%
-        filter(Site %in% input$site) %>%
-        filter(Timestamp > ymd(input$date_range[1]) & Timestamp < ymd(input$date_range[2]))
-      
-    } else if(input$sensor == "Water Quality"){
-      WaterQuality_data$df %>%
-        filter(Site %in% input$site) %>%
-        filter(Timestamp > ymd(input$date_range[1]) & Timestamp < ymd(input$date_range[2]))
-      
-    } else if (input$sensor == "Water Level") {
-      WaterLevel_data$df %>%
-        filter(Site %in% input$site) %>%
-        filter(Timestamp > ymd(input$date_range[1]) & Timestamp < ymd(input$date_range[2]))
-    }
-    
-    # Previous code, I'd like to return to but reactiveValues do not work with get() apparently
-    # Subset currently selected sensor data by site and time selections
-    #get(paste0(gsub(" ", "", input$sensor),"_data$df")) %>%
-      # filter(Site %in% input$site) %>%
-      # filter(Timestamp > ymd(input$date_range[1]) & Timestamp < ymd(input$date_range[2]))
-    #}
-
   }
   
   # Generate a plot of the data 
-  output$plot <- renderPlot({
-    #if(is.null(input$parameter) | input$sensor == "none selected"){return(NULL)}
-    if(input$runQuery == 0){return(NULL)}
+  output$plot_qc <- renderPlot({
     
-    # Trigger plot creation when run query button is clicked
-    input$runQuery
-    
-    # Isolate prevents graph from updating whenever other inputs change
-    isolate({
-      # Generates a facet grid plot for one to many parameters
-      getSensorData() %>%
-        select(Timestamp, Site, input$parameter) %>%
-        # melt the data to long form
-        gather(key="variable", value = "measurement", -Timestamp, -Site, na.rm = TRUE) %>%
-        ggplot(aes(Timestamp, measurement, color = Site)) + 
-        geom_line() + 
-        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
-        facet_grid(variable ~ .) + 
-        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
-        ylab("") 
+    # Prevents error message from getting written to UI upon app startup
+    tryCatch({
+    current_data$df %>%
+      select(timestamp, input$parameter_qc) %>%
+      # melt the data to long form
+      gather(key="variable", value = "measurement", -timestamp, na.rm = TRUE) %>%
+      ggplot(aes(timestamp, measurement)) +
+      geom_point() +
+      coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
+      # #facet_grid(variable ~ .) +
+      theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
+      ylab("")
+
+      }, error = function(e){
+        
     })
-  }, height = function(){
-    input$GetScreenHeight * .6
+
   })
   
-  # Download handler creates filename and prepares data for download
-  output$download <- downloadHandler(
-    filename = function(){
-      paste0("marinegeo_cpop-", Sys.Date(), ".csv")
-    },
-    content = function(file){
-      write.csv(getSensorData(), file)
-    }
-  )
+  output$plot_reference <- renderPlot({
+    
+    # Prevents error message from getting written to UI upon app startup
+    tryCatch({
+      current_data$df %>%
+        select(timestamp, input$parameter_reference) %>%
+        # melt the data to long form
+        gather(key="variable", value = "measurement", -timestamp, na.rm = TRUE) %>%
+        ggplot(aes(timestamp, measurement)) +
+        geom_point() +
+        coord_cartesian(xlim = ranges$x, expand = FALSE) + #, ylim = ranges$y
+        # #facet_grid(variable ~ .) +
+        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
+        ylab("")
+      
+    }, error = function(e){
+      
+    })
+    
+  })
   
-  observeEvent(input$plot1_dblclick, {
-    brush <- input$plot1_brush
-    if (!is.null(brush)) {
-      ranges$x <- c(brush$xmin, brush$xmax)
-      ranges$y <- c(brush$ymin, brush$ymax)
+  # Adapted from https://shiny.rstudio.com/gallery/plot-interaction-zoom.html
+  
+  ranges <- reactiveValues(x = NULL, y = NULL)
+  
+  observeEvent(input$plot_dblclick, {
+    # If the user has selected zoom, then the everything within a drawn box will be zoomed into
+    # Or an existing zoom will be cancelled
+    if(input$figure_functionality == "Zoom"){
+      brush <- input$plot_brush
+      if (!is.null(brush)) {
+        ranges$x <- c(as.POSIXct(brush$xmin, origin = "1970-01-01"),
+                      as.POSIXct(brush$xmax, origin = "1970-01-01"))
+        ranges$y <- c(brush$ymin, brush$ymax)
+
+      } else {
+        ranges$x <- NULL
+        ranges$y <- NULL
+      }
+    } else if(input$figure_functionality == "Select"){
+
+    }
+
+  })
+  
+  output$table_selected_points <- renderDataTable({
+    
+    # By default, the table will show the timestamp and the two parameters selected on the left panel
+    data_subset <- current_data$df %>%
+      select(timestamp, input$parameter_qc, input$parameter_reference)
+    
+    # If the brush functionality is "select", the table will be further subset to those points selected
+    if(input$figure_functionality == "Select"){
+      brush_subset <- brushedPoints(data_subset, input$plot_brush,
+                                    yvar = input$parameter_qc) 
+      datatable(brush_subset)
       
     } else {
-      ranges$x <- NULL
-      ranges$y <- NULL
+      datatable(data_subset)
     }
   })
   
+  output$table_summary_qc <- renderDataTable({
+    
+    if(nrow(qc_output$df) > 0){
+      summary <- qc_output$df %>%
+        mutate(timestamp = ymd_hms(timestamp)) %>%
+        group_by(parameter, code) %>%
+        summarize(number_points_flagged = n(),
+                  from = min(timestamp),
+                  to = max(timestamp))
+      
+      datatable(summary)
+    }
+  })
+  output$plot_facet <- renderPlot({
+    # Plot allows techs to visualize 1 to all parameters without slowly moving from parameter to parameter on the main panel
+    # Defaults to null until parameters are selected in UI
+    if(!is.null(input$facet_parameters)){
+      # Prevents error message from getting written to UI upon app startup
+      tryCatch({
+        current_data$df %>%
+          select(timestamp, input$facet_parameters) %>%
+          # melt the data to long form
+          gather(key="variable", value = "measurement", -timestamp, na.rm = TRUE) %>%
+          ggplot(aes(timestamp, measurement)) +
+          geom_point() +
+          # coord_cartesian(xlim = ranges$x, expand = FALSE) + #, ylim = ranges$y
+          facet_grid(variable ~ .) +
+          theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
+          ylab("")
+        
+      }, error = function(e){
+        
+      })
+    }
+  })
+  
+  observeEvent(input$apply_qc, {
+    
+    # If the brush functionality is "select", all selected QC codes will be associated with each selected point
+    if(input$figure_functionality == "Select"){
+      data_subset <- current_data$df %>%
+        select(timestamp, input$parameter_qc)
+      
+      brush_subset <- brushedPoints(data_subset, input$plot_brush,
+                                    yvar = input$parameter_qc) 
+      
+      # Right now, bind WQ and MET codes together
+      codes <- qc_flags %>%
+        filter(select_inputs %in% c(input$wq_qc_flags, input$met_qc_flags)) %$%
+        paste(unique(.$code), collapse = ",")
+      
+      #codes <- paste0(input$wq_qc_flags, input$met_qc_flags, sep= ",")
+      
+      qc_output$df <- brush_subset %>%
+        mutate(timestamp = as.character(timestamp),
+               parameter = input$parameter_qc,
+               code = codes) %>%
+        select(-input$parameter_qc) %>%
+        separate_rows(code, sep=",") %>%
+        bind_rows(qc_output$df)
+      
+      # output <- brush_subset %>%
+      #   mutate(code = codes,
+      #          timestamp = as.character(timestamp),
+      #          parameter = input$parameter_qc) %>%
+      #   select(-input$parameter_qc)
+      # 
+      # print(output)
+      # print(str(output))
+      
+    } else {
+      showModal(modalDialog(
+        title = "Select data mode not activated",
+        "QC flags will only be associated with data while the \"Select\" mode is active above. Move toggle from \"Zoom\" to \"Select\""
+      ))
+      
+      
+    }
+    
+  })
+  
+  output$remove_flags <- renderUI({
+
+    selectInput("select_remove_flags", "Select QC flags to remove",
+                choices = unique(qc_output$df$code), multiple = TRUE)
+    
+  })
+  
+  observeEvent(input$confirm_removal,{
+    
+    if(!is.null(input$select_remove_flags)){
+      qc_output$df <- qc_output$df %>%
+        filter(!(code %in% input$select_remove_flags))
+    }
+  })
 }
