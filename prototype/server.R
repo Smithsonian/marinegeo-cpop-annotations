@@ -55,6 +55,11 @@ function(input, output) {
     year_start <- year(input$date_range[1])
     year_end <- year(input$date_range[2])
     
+    # Exception handling for invalid dates
+    if(year_end>2020 | year_end<year_start){
+      year_end <- 2020
+    }
+    
     subset <- data_tracker$df %>%
       filter(sensor %in% input$sensor) %>%
       filter(site %in% input$site) %>%
