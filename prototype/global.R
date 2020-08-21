@@ -1,4 +1,3 @@
-# shiny app demo showing SERC and STRI water quality, water level, and met data
 # Global script runs first when initializing application
 # Packages and data are loaded 
 
@@ -17,8 +16,12 @@ library(DT)
 # Load dropbox token
 drop_auth(rdstoken = "droptoken.rds")
 
-key <- drop_read_csv("Marine_GEO_CPOP_PROCESSING/TEST_STRI/STRIdeploymentrecord.csv") %>%
-  mutate(full_timestamp = paste(as.character(startstamp), as.character(stopstamp), sep = "-"))
+# key <- drop_read_csv("Marine_GEO_CPOP_PROCESSING/TEST_STRI/STRIdeploymentrecord.csv") %>%
+#   mutate(full_timestamp = paste(as.character(startstamp), as.character(stopstamp), sep = "-"))
+
+## For demo ##
+key <- tibble(full_timestamp = "2019-10-29 07:54:00 - 2019-11-19 13:48:00")
+sensor_parameters_df <- read_csv("./data/sensor_parameters.csv")
 
 qc_flags <- read_csv("./data/qc_technician_codes.csv") %>%
   mutate(select_inputs = paste(code, description, sep=" - "))
@@ -42,9 +45,30 @@ met_qc_flags <- qc_flags %>%
 #   filter(status == "QAQC")
 
 # list of parameters for available sensors
-parameters <- c("Fault_Code",	"Battery_V",	"Cable_Pwr_V",	"Temp_.C",	"Cond_µS_cm",	"SpCond_µS_cm",	"Sal_psu",	
-"nLF_Cond_µS_cm",	"TDS_mg_L",	"ODO_._sat",	"ODO_mg_L",	"pH",	"pH_mV",	"Turbidity_FNU",	"TSS_mg_L",	"Chlorophyll_RFU",	"Chlorophyll_µg_L",
-"BGA.PE_RFU",	"BGA.PE_µg_L",	"fDOM_RFU",	"fDOM_QSU",	"Press_psi_a",	"Depth_m")
+## For demo ####
+# Changed Temp_.C to Temp_C
+parameters <- c("Battery_V",	"Temp_C",	"Cond_µS_cm",	"SpCond_µS_cm",	"Sal_psu",	
+"nLF_Cond_µS_cm",	"TDS_mg_L",	"ODO__sat",	"ODO__local", "ODO_mg_L",	"pH",	"pH_mV",	"Turbidity_FNU",	"TSS_mg_L",	"Chlorophyll_RFU",	"Chlorophyll_ug_L",
+"BGA_PE_RFU",	"BGA_PE_ug_L",	"fDOM_RFU",	"fDOM_QSU",	"Depth_m")
+
+df <- read.csv("./data/QAQC_example.csv") %>%
+  select(timestamp, any_of(parameters), Turbidity_0, Conductivity_Temp_0, Optical_DO_0) %>%
+  mutate(Turbidity_0 = as.character(Turbidity_0),
+         Conductivity_Temp_0 = as.character(Conductivity_Temp_0),
+         Optical_DO_0 = as.character(Optical_DO_0)) %>%
+  mutate(Turbidity_0 = case_when(
+    Turbidity_0 == "0" ~ "Passed Checks",
+    Turbidity_0 == "1" ~ "Suspect Data"
+  )) %>%
+  mutate(Conductivity_Temp_0 = case_when(
+    Conductivity_Temp_0 == "0" ~ "Passed Checks",
+    Conductivity_Temp_0 == "1" ~ "Suspect Data"
+  )) %>%
+  mutate(Optical_DO_0 = case_when(
+    Optical_DO_0 == "0" ~ "Passed Checks",
+    Optical_DO_0 == "1" ~ "Suspect Data"
+  )) %>%
+  filter(Turbidity_FNU < 1000)
 
 jscode <-
   '$(document).on("shiny:connected", function(e) {

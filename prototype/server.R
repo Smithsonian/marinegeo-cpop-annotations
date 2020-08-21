@@ -10,6 +10,31 @@ function(input, output) {
                                           code = as.character(NA), 
                                           .rows = 0))
   
+  ## Sensor - Parameter UI logic
+  sensor_parameters <- reactiveVal("")
+  current_sensor <- reactiveVal(NA)
+  
+  output$parameter_qc <- renderUI({
+    selectInput("parameter_qc", "Select a parameter to QC",
+                sensor_parameters(), multiple = FALSE)
+  })
+  
+  observeEvent(input$sensor_qc, {
+    # Update parameters based on sensor selection
+    sensor_parameters(
+      sensor_parameters_df %>%
+        filter(sensor %in% input$sensor_qc) %>%
+        pull(parameter)
+    )
+  })
+  
+  observeEvent(input$parameter_qc, {
+    current_sensor(
+      sensor_parameters_df %>%
+        filter(parameter == input$parameter_qc) %>%
+        pull(sensor_numeric_flag)
+    )
+  })
   
   ## Load Data ####
   # Action to take if run query button pressed
@@ -18,35 +43,37 @@ function(input, output) {
     # Create an object for the selected timestamp in the UI
     selected_time <- input$date_range
 
-    # Get output path from key for given timestamp
-    subset <- key %>%
-      filter(full_timestamp == selected_time)
-
-    # Some files may be duplicated in the directory
-    # This will need to fixed outside of this application, but will use unique() for now
-    filepath <- unique(subset$output)
-    
-    if(length(filepath) == 1){
-      importFiles(filepath)
-    } else {
-      showModal(modalDialog(
-        title = "Duplicate timestamp",
-        "Multiple files exist for the current timestamp. Each file should represent a unique timestamp." 
-      ))
-    }
+    ## For demo ####
+    importFiles()
+    # # Get output path from key for given timestamp
+    # subset <- key %>%
+    #   filter(full_timestamp == selected_time)
+    # 
+    # # Some files may be duplicated in the directory
+    # # This will need to fixed outside of this application, but will use unique() for now
+    # filepath <- unique(subset$output)
+    # 
+    # if(length(filepath) == 1){
+    #   importFiles(filepath)
+    # } else {
+    #   showModal(modalDialog(
+    #     title = "Duplicate timestamp",
+    #     "Multiple files exist for the current timestamp. Each file should represent a unique timestamp." 
+    #   ))
+    # }
   })
   
   # Import files and append to reactive object
   importFiles <- function(filepath){
     
     # Read in CSV given filepath
-    current_data$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/TEST_STRI/", filepath)) 
+    # current_data$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/TEST_STRI/", filepath)) 
+    current_data$df <- df
     
     # Convert timestamp to POSIXct
     current_data$df <- current_data$df %>%
       mutate(timestamp = ymd_hms(timestamp),
              qc_tech_flag = FALSE)
-    
   }
   
   ## Plots ####
@@ -55,22 +82,81 @@ function(input, output) {
     
     # Prevents error message from getting written to UI upon app startup
     tryCatch({
-    current_data$df %>%
-      select(timestamp, qc_tech_flag, input$parameter_qc) %>%
-      # melt the data to long form
-      gather(key="variable", value = "measurement", -timestamp, -qc_tech_flag, na.rm = TRUE) %>%
-      ggplot(aes(timestamp, measurement, color = qc_tech_flag)) +
-      geom_point() +
-      coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
-      # #facet_grid(variable ~ .) +
-      theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
-            legend.position = "top") +
-      ylab("")
+      
+    if(input$sensor_qc == "Turbidity"){
+      
+      current_data$df %>%
+        select(timestamp, qc_tech_flag, input$parameter_qc, Turbidity_0) %>%
+        filter(!is.na(Turbidity_0)) %>%
+        mutate(Turbidity_0 = case_when(
+          qc_tech_flag ~ "QC Flag Applied",
+          T ~ Turbidity_0
+        )) %>%
+        # melt the data to long form
+        gather(key="variable", value = "measurement", -timestamp, -qc_tech_flag, -Turbidity_0, na.rm = TRUE) %>%
+        #ggplot(aes(timestamp, measurement, color = qc_tech_flag)) +
+        ggplot(aes(timestamp, measurement, color = Turbidity_0)) +
+        geom_point() +
+        scale_color_manual(values = c("Passed Checks" = "grey", "Suspect Data" = "red", "QC Flag Applied" = "blue")) +
+        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
+        # facet_grid(variable ~ .) +
+        theme_bw() + 
+        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
+              legend.position = "top",
+              legend.title=element_blank(), 
+              text=element_text(size=18)) +
+        ylab("")
 
+    } else if(input$sensor_qc == "Conductivity"){
+      
+      current_data$df %>%
+        select(timestamp, qc_tech_flag, input$parameter_qc, Conductivity_Temp_0) %>%
+        filter(!is.na(Conductivity_Temp_0)) %>%
+        mutate(Conductivity_Temp_0 = case_when(
+          qc_tech_flag ~ "QC Flag Applied",
+          T ~ Conductivity_Temp_0
+        )) %>%
+        # melt the data to long form
+        gather(key="variable", value = "measurement", -timestamp, -qc_tech_flag, -Conductivity_Temp_0, na.rm = TRUE) %>%
+        #ggplot(aes(timestamp, measurement, color = qc_tech_flag)) +
+        ggplot(aes(timestamp, measurement, color = Conductivity_Temp_0)) +
+        geom_point() +
+        scale_color_manual(values = c("Passed Checks" = "grey", "Suspect Data" = "red", "QC Flag Applied" = "blue")) +
+        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
+        # facet_grid(variable ~ .) +
+        theme_bw() + 
+        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
+              legend.position = "top",
+              legend.title=element_blank(), 
+              text=element_text(size=18)) +
+        ylab("")
+      
+    } else if(input$sensor_qc == "Optical Dissolved Oxygen"){
+      current_data$df %>%
+        select(timestamp, qc_tech_flag, input$parameter_qc, Optical_DO_0) %>%
+        filter(!is.na(Optical_DO_0)) %>%
+        mutate(Optical_DO_0 = case_when(
+          qc_tech_flag ~ "QC Flag Applied",
+          T ~ Optical_DO_0
+        )) %>%
+        # melt the data to long form
+        gather(key="variable", value = "measurement", -timestamp, -qc_tech_flag, -Optical_DO_0, na.rm = TRUE) %>%
+        #ggplot(aes(timestamp, measurement, color = qc_tech_flag)) +
+        ggplot(aes(timestamp, measurement, color = Optical_DO_0)) +
+        geom_point() +
+        scale_color_manual(values = c("Passed Checks" = "grey", "Suspect Data" = "red", "QC Flag Applied" = "blue")) +
+        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
+        # facet_grid(variable ~ .) +
+        theme_bw() + 
+        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
+              legend.position = "top",
+              legend.title=element_blank(), 
+              text=element_text(size=18)) +
+        ylab("")
+      
+    }
       }, error = function(e){
-        
     })
-
   })
   
   output$plot_reference <- renderPlot({
@@ -83,15 +169,16 @@ function(input, output) {
         gather(key="variable", value = "measurement", -timestamp, na.rm = TRUE) %>%
         ggplot(aes(timestamp, measurement)) +
         geom_point() +
-        coord_cartesian(xlim = ranges$x, expand = FALSE) + #, ylim = ranges$y
-        # #facet_grid(variable ~ .) +
-        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
+        coord_cartesian(xlim = ranges$x, expand = FALSE) +
+        # facet_grid(variable ~ .) +
+        theme_bw() + 
+        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
+              text=element_text(size=18)) +
         ylab("")
       
     }, error = function(e){
       
     })
-    
   })
   
   output$plot_facet <- renderPlot({
@@ -107,7 +194,7 @@ function(input, output) {
           ggplot(aes(timestamp, measurement)) +
           geom_point() +
           # coord_cartesian(xlim = ranges$x, expand = FALSE) + #, ylim = ranges$y
-          facet_grid(variable ~ .) +
+          facet_grid(variable ~ ., scales = "free_y") +
           theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0)) +
           ylab("")
         

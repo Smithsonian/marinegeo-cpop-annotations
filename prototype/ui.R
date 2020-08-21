@@ -23,7 +23,7 @@ body <- dashboardBody(
                
                # Dropdown selector for sites
                selectInput("site", "Select a site",
-                           "STRI", multiple = FALSE),
+                           c("USA-IRL", "PAN-BDT"), multiple = FALSE),
                
                # select a time range
                selectInput("date_range", "Select a time range",
@@ -36,9 +36,15 @@ body <- dashboardBody(
                
                div(hr()),
                
+               selectInput("sensor_qc", "Select a sensor",
+                           c("", "Turbidity", "Conductivity", "Optical Dissolved Oxygen"),
+                           multiple = FALSE),
+                           
                # conditional dropdown for sensor parameters at selected site and sensor
-               selectInput("parameter_qc", "Select a parameter to QC",
-                           parameters, multiple = FALSE),
+               uiOutput("parameter_qc"),
+               
+               # selectInput("parameter_qc", "Select a parameter to QC",
+               #             sensor_parameters(), multiple = FALSE),
                
                selectInput("parameter_reference", "Select a reference parameter",
                            parameters, multiple = FALSE),
