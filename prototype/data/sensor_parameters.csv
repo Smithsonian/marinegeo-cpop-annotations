@@ -1,11 +1,11 @@
 ﻿sensor,parameter,sensor_numeric_flag
 Turbidity,Turbidity_FNU,Turbidity_0
 Turbidity,TSS_mg_L,Turbidity_0
-Conductivity,Cond_µS_cm,Conductivity_Temp_0
+Conductivity,Cond_microS_cm,Conductivity_Temp_0
 Conductivity,Sal_psu,Conductivity_Temp_0
-Conductivity,SpCond_µS_cm,Conductivity_Temp_0
+Conductivity,SpCond_microS_cm,Conductivity_Temp_0
 Conductivity,TDS_mg_L,Conductivity_Temp_0
-Conductivity,nLF_Cond_µS_cm,Conductivity_Temp_0
-Optical Dissolved Oxygen,ODO__sat,Optical_DO_0
-Optical Dissolved Oxygen,ODO__local,Optical_DO_0
+Conductivity,nLF_Cond_microS_cm,Conductivity_Temp_0
+Optical Dissolved Oxygen,ODO_sat,Optical_DO_0
+Optical Dissolved Oxygen,ODO_local,Optical_DO_0
 Optical Dissolved Oxygen,ODO_mg_L,Optical_DO_0

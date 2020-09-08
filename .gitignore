@@ -4,3 +4,4 @@
 .Ruserdata
 .httr-oauth
 droptoken.rds
+*rsconnect*

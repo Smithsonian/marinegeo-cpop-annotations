@@ -1,11 +1,9 @@
-# shiny app demo showing SERC and STRI water quality and met data
-
 
 function(input, output) {
   # Initiate empty object to hold imported data
   current_data <- reactiveValues(df=data.frame())
   # Empty dataframe will hold points selected for QC and associated QC codes
-  qc_output <- reactiveValues(df = tibble(timestamp = as.character(NA),
+  qc_output <- reactiveValues(df = tibble(timestamp = as.POSIXct(NA), 
                                           parameter = as.character(NA),
                                           code = as.character(NA), 
                                           .rows = 0))
@@ -28,53 +26,31 @@ function(input, output) {
     )
   })
   
-  observeEvent(input$parameter_qc, {
-    current_sensor(
-      sensor_parameters_df %>%
-        filter(parameter == input$parameter_qc) %>%
-        pull(sensor_numeric_flag)
-    )
-  })
-  
   ## Load Data ####
   # Action to take if run query button pressed
   observeEvent(input$loadData, {
     
-    # Create an object for the selected timestamp in the UI
-    selected_time <- input$date_range
+    selected_file <- input$file
 
-    ## For demo ####
-    importFiles()
-    # # Get output path from key for given timestamp
-    # subset <- key %>%
-    #   filter(full_timestamp == selected_time)
-    # 
-    # # Some files may be duplicated in the directory
-    # # This will need to fixed outside of this application, but will use unique() for now
-    # filepath <- unique(subset$output)
-    # 
-    # if(length(filepath) == 1){
-    #   importFiles(filepath)
-    # } else {
-    #   showModal(modalDialog(
-    #     title = "Duplicate timestamp",
-    #     "Multiple files exist for the current timestamp. Each file should represent a unique timestamp." 
-    #   ))
-    # }
-  })
-  
-  # Import files and append to reactive object
-  importFiles <- function(filepath){
-    
     # Read in CSV given filepath
-    # current_data$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/TEST_STRI/", filepath)) 
-    current_data$df <- df
-    
+    current_data$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/", selected_file)) 
+
     # Convert timestamp to POSIXct
     current_data$df <- current_data$df %>%
+      select(-timestamp) %>%
+      rename(timestamp = timestamp2) %>%
       mutate(timestamp = ymd_hms(timestamp),
              qc_tech_flag = FALSE)
-  }
+    
+    # Check if current filename has current annotations
+    qc_output$df <- annotations_df %>%
+      filter(file == selected_file) %>%
+      bind_rows(qc_output$df)
+    
+    current_data$df <- current_data$df %>%
+      mutate(qc_tech_flag = ifelse(timestamp %in% qc_output$df$timestamp,
+                                   TRUE, qc_tech_flag))
+  })
   
   ## Plots ####
   # Generate a plot of the data 
@@ -83,23 +59,41 @@ function(input, output) {
     # Prevents error message from getting written to UI upon app startup
     tryCatch({
       
-    if(input$sensor_qc == "Turbidity"){
+      sensor_numeric_flag <- unname(named_sensor_vector[input$sensor_qc])
+      
+      parameter_mean <- current_data$df %>%
+        summarize(mean = mean(!!sym(input$parameter_qc), na.rm=T)) %>%
+        pull(mean)
       
       current_data$df %>%
-        select(timestamp, qc_tech_flag, input$parameter_qc, Turbidity_0) %>%
-        filter(!is.na(Turbidity_0)) %>%
-        mutate(Turbidity_0 = case_when(
+        select(timestamp, qc_tech_flag, all_of(sensor_numeric_flag), all_of(input$parameter_qc)) %>%
+        mutate(numeric_label = case_when(
           qc_tech_flag ~ "QC Flag Applied",
-          T ~ Turbidity_0
+          !!sym(sensor_numeric_flag) == "-5" ~ "Outside high range",
+          !!sym(sensor_numeric_flag) == "-4" ~ "Outside low range",
+          !!sym(sensor_numeric_flag) == "-3" ~ "Data rejected due to QAQC",
+          !!sym(sensor_numeric_flag) == "-2" ~ "Missing Data",
+          !!sym(sensor_numeric_flag) == "-1" ~ "Optional parameter, not collected",
+          !!sym(sensor_numeric_flag) == "0" ~ "Passed initial QAQC check",
+          !!sym(sensor_numeric_flag) == "1" ~ "Suspect Data",
+          !!sym(sensor_numeric_flag) == "2" ~ "Reserved for Future Use",
+          T ~ "Other Codes"
         )) %>%
-        # melt the data to long form
-        gather(key="variable", value = "measurement", -timestamp, -qc_tech_flag, -Turbidity_0, na.rm = TRUE) %>%
-        #ggplot(aes(timestamp, measurement, color = qc_tech_flag)) +
-        ggplot(aes(timestamp, measurement, color = Turbidity_0)) +
+        mutate(!!input$parameter_qc := case_when(
+          !!sym(sensor_numeric_flag) == "-2" ~ parameter_mean,
+          T ~ !!sym(input$parameter_qc)
+        )) %>%
+        ggplot(aes_string("timestamp", all_of(input$parameter_qc), color = "numeric_label")) +
         geom_point() +
-        scale_color_manual(values = c("Passed Checks" = "grey", "Suspect Data" = "red", "QC Flag Applied" = "blue")) +
+        scale_color_manual(values = c("Outside high range" = "#67001f",
+                                      "Outside low range" = "#b2182b",
+                                      "Data rejected due to QAQC" = "#d6604d",
+                                      "Missing Data" = "#f4a582",
+                                      "Optional parameter, not collected" = "#fddbc7",
+                                      "Passed initial QAQC check" = "grey", 
+                                      "Suspect Data" = "#e08214", 
+                                      "QC Flag Applied" = "#2166ac")) +
         coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
-        # facet_grid(variable ~ .) +
         theme_bw() + 
         theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
               legend.position = "top",
@@ -107,54 +101,6 @@ function(input, output) {
               text=element_text(size=18)) +
         ylab("")
 
-    } else if(input$sensor_qc == "Conductivity"){
-      
-      current_data$df %>%
-        select(timestamp, qc_tech_flag, input$parameter_qc, Conductivity_Temp_0) %>%
-        filter(!is.na(Conductivity_Temp_0)) %>%
-        mutate(Conductivity_Temp_0 = case_when(
-          qc_tech_flag ~ "QC Flag Applied",
-          T ~ Conductivity_Temp_0
-        )) %>%
-        # melt the data to long form
-        gather(key="variable", value = "measurement", -timestamp, -qc_tech_flag, -Conductivity_Temp_0, na.rm = TRUE) %>%
-        #ggplot(aes(timestamp, measurement, color = qc_tech_flag)) +
-        ggplot(aes(timestamp, measurement, color = Conductivity_Temp_0)) +
-        geom_point() +
-        scale_color_manual(values = c("Passed Checks" = "grey", "Suspect Data" = "red", "QC Flag Applied" = "blue")) +
-        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
-        # facet_grid(variable ~ .) +
-        theme_bw() + 
-        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
-              legend.position = "top",
-              legend.title=element_blank(), 
-              text=element_text(size=18)) +
-        ylab("")
-      
-    } else if(input$sensor_qc == "Optical Dissolved Oxygen"){
-      current_data$df %>%
-        select(timestamp, qc_tech_flag, input$parameter_qc, Optical_DO_0) %>%
-        filter(!is.na(Optical_DO_0)) %>%
-        mutate(Optical_DO_0 = case_when(
-          qc_tech_flag ~ "QC Flag Applied",
-          T ~ Optical_DO_0
-        )) %>%
-        # melt the data to long form
-        gather(key="variable", value = "measurement", -timestamp, -qc_tech_flag, -Optical_DO_0, na.rm = TRUE) %>%
-        #ggplot(aes(timestamp, measurement, color = qc_tech_flag)) +
-        ggplot(aes(timestamp, measurement, color = Optical_DO_0)) +
-        geom_point() +
-        scale_color_manual(values = c("Passed Checks" = "grey", "Suspect Data" = "red", "QC Flag Applied" = "blue")) +
-        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
-        # facet_grid(variable ~ .) +
-        theme_bw() + 
-        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
-              legend.position = "top",
-              legend.title=element_blank(), 
-              text=element_text(size=18)) +
-        ylab("")
-      
-    }
       }, error = function(e){
     })
   })
@@ -230,9 +176,9 @@ function(input, output) {
   ## Datatable output ####
   output$table_selected_points <- renderDataTable({
     
-    # By default, the table will show the timestamp and the two parameters selected on the left panel
+    # By default, the table will show the timestamp, the selected QAQC parameter, and the QC numeric flag
     data_subset <- current_data$df %>%
-      select(timestamp, input$parameter_qc, input$parameter_reference)
+      select(timestamp, input$parameter_qc, unname(named_sensor_vector[input$sensor_qc]))
     
     # If the brush functionality is "select", the table will be further subset to those points selected
     if(input$figure_functionality == "Select"){
@@ -250,7 +196,7 @@ function(input, output) {
     if(nrow(qc_output$df) > 0){
       summary <- qc_output$df %>%
         mutate(timestamp = ymd_hms(timestamp)) %>%
-        group_by(parameter, code) %>%
+        group_by(sensor, code) %>%
         summarize(number_points_flagged = n(),
                   from = min(timestamp),
                   to = max(timestamp))
@@ -267,6 +213,7 @@ function(input, output) {
       data_subset <- current_data$df %>%
         select(timestamp, input$parameter_qc)
       
+      # Returns points under the brush
       brush_subset <- brushedPoints(data_subset, input$plot_brush,
                                     yvar = input$parameter_qc) 
       
@@ -278,9 +225,11 @@ function(input, output) {
       #codes <- paste0(input$wq_qc_flags, input$met_qc_flags, sep= ",")
       
       qc_output$df <- brush_subset %>%
-        mutate(timestamp = as.character(timestamp),
+        mutate(# timestamp = as.character(timestamp),
                parameter = input$parameter_qc,
-               code = codes) %>%
+               sensor = input$sensor_qc,
+               code = codes,
+               file = input$file) %>%
         select(-input$parameter_qc) %>%
         separate_rows(code, sep=",") %>%
         bind_rows(qc_output$df)
@@ -308,16 +257,43 @@ function(input, output) {
     
     if(!is.null(input$select_remove_flags)){
       points_to_remove <- qc_output$df %>%
-        mutate(timestamp = ymd_hms(timestamp)) %>%
         filter(code %in% input$select_remove_flags) 
       
       qc_output$df <- qc_output$df %>%
-        mutate(timestamp = ymd_hms(timestamp)) %>%
         filter(!(code %in% input$select_remove_flags))
       
       current_data$df <- current_data$df %>%
         mutate(qc_tech_flag = ifelse(timestamp %in% points_to_remove$timestamp & !(timestamp %in% qc_output$df$timestamp),
                                      FALSE, qc_tech_flag))
     }
+  })
+  
+  observeEvent(input$confirm_flags, {
+    
+    filename <- paste(input$tech_id, 
+                      format(Sys.time(), "%Y%m%d-%H%M%OS"),
+                      sep = "_")
+    
+    setwd(tempdir())
+    
+    if(nrow(qc_output$df) > 0){
+      
+      write_csv(qc_output$df,
+                paste0(filename, ".csv"))
+      
+      drop_upload(paste0(filename, ".csv"),
+                  path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/")
+      
+      showModal(modalDialog(
+        title = "Annotations saved", 
+        div("Your annotations have been saved. To continue using this application without submitting the same annotations again, either refresh or remove all annotations."),
+        
+        easyClose = TRUE
+      ))
+      
+    }
+    
+    setwd(original_wd)
+    
   })
 }

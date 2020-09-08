@@ -21,13 +21,16 @@ body <- dashboardBody(
            box(width = NULL, 
                status = "primary",
                
-               # Dropdown selector for sites
-               selectInput("site", "Select a site",
-                           c("USA-IRL", "PAN-BDT"), multiple = FALSE),
+               # # Dropdown selector for sites
+               # selectInput("site", "Select a site",
+               #             c("", "USA-IRL", "PAN-BDT"), multiple = FALSE),
+               # 
+               # # select a time range
+               # selectInput("date_range", "Select a time range",
+               #                key$full_timestamp, multiple = FALSE),
                
-               # select a time range
-               selectInput("date_range", "Select a time range",
-                              key$full_timestamp, multiple = FALSE),
+               selectInput("file", "Select a file",
+                           bundled_directory, multiple = FALSE),
                
                tags$br(),
                
@@ -37,7 +40,7 @@ body <- dashboardBody(
                div(hr()),
                
                selectInput("sensor_qc", "Select a sensor",
-                           c("", "Turbidity", "Conductivity", "Optical Dissolved Oxygen"),
+                           c("", names(named_sensor_vector)),
                            multiple = FALSE),
                            
                # conditional dropdown for sensor parameters at selected site and sensor
@@ -98,6 +101,10 @@ body <- dashboardBody(
                       dataTableOutput("table_summary_qc"),
                       uiOutput("remove_flags"),
                       actionButton("confirm_removal", "Confirm QC flag removal", class = "btn-warning"),
+                      
+                      div(tags$br()),
+                  
+                      textInput("tech_id", "Enter your technician code", "default_code"),
                       actionButton("confirm_flags", "Confirm QC flag selections", class = "btn-primary"))
            ),
            
