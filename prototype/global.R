@@ -17,14 +17,14 @@ library(DT)
 drop_auth(rdstoken = "droptoken.rds")
 
 # Get filenames to populate UI for now
-bundled_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/") %>%
+bundled_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/QAQC_bundles/") %>%
   pull(name)
 
-# key <- drop_read_csv("Marine_GEO_CPOP_PROCESSING/TEST_STRI/STRIdeploymentrecord.csv") %>%
-#   mutate(full_timestamp = paste(as.character(startstamp), as.character(stopstamp), sep = "-"))
+key <- as_tibble(bundled_directory) %>%
+  rename(Filename = value) %>%
+  separate(Filename, into = c("Site", "File Type", "Date", "Status"), remove = FALSE) %>%
+  select(everything(), Filename)
 
-## For demo ##
-#key <- tibble(full_timestamp = "2019-10-29 07:54:00 - 2019-11-19 13:48:00")
 sensor_parameters_df <- read_csv("./data/sensor_parameters.csv")
 
 qc_flags <- read_csv("./data/qc_technician_codes.csv") %>%
@@ -56,20 +56,36 @@ parameters <- sensor_parameters_df %>%
   pull(parameter)
 
 # Get filenames of annotations
-annotation_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/") %>%
-  pull(name)
+annotation_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/") 
 
-annotations_df <- data.frame()
-
-for(filename in annotation_directory){
-  annotations_df <- annotations_df %>%
-    bind_rows(drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/",
-                         filename)))
-  
+# If there are no annotations in the directory a data frame with no rows or columns is returned. 
+# The app must have a df with a column "name"
+if(nrow(annotation_directory) == 0){
+  annotation_directory <- tibble(filename = NA_character_,
+                                 name = NA_character_,
+                                 technician_code = NA_character_,
+                                 .rows = 0)
+  # annotation_files <- annotation_directory %>%
+  #   pull(name)
+  # 
+  # annotations_df <- data.frame()
+  # 
+  # for(filename in annotation_files){
+  #   annotations_df <- annotations_df %>%
+  #     bind_rows(drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/",
+  #                                    filename)))
+  #   
+  # }
+  # 
+  # annotations_df <- annotations_df %>%
+  #   mutate(timestamp = ymd_hms(timestamp))
+} else {
+  annotation_directory <- annotation_directory %>%
+    select(name) %>%
+    separate(name, into = c("filename", "technician_code"), sep = "-", remove = FALSE) %>%
+    mutate(filename = paste0(filename, ".csv"),
+           technician_code = gsub(".csv", "", technician_code))
 }
-
-annotations_df <- annotations_df %>%
-  mutate(timestamp = ymd_hms(timestamp))
 
 # Record working directory to return to after moving to temporary directory
 original_wd <- getwd()
@@ -81,7 +97,6 @@ original_wd <- getwd()
 # "nLF_Cond_µS_cm",	"TDS_mg_L",	"ODO__sat",	"ODO__local", "ODO_mg_L",	"pH",	"pH_mV",	"Turbidity_FNU",	"TSS_mg_L",	"Chlorophyll_RFU",	"Chlorophyll_ug_L",
 # "BGA_PE_RFU",	"BGA_PE_ug_L",	"fDOM_RFU",	"fDOM_QSU",	"Depth_m")
 # 
-
 
 jscode <-
   '$(document).on("shiny:connected", function(e) {
