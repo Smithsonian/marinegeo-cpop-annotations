@@ -23,7 +23,8 @@ bundled_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/Q
 key <- as_tibble(bundled_directory) %>%
   rename(Filename = value) %>%
   separate(Filename, into = c("Site", "File Type", "Date", "Status"), remove = FALSE) %>%
-  select(everything(), Filename)
+  select(everything(), Filename) %>%
+  arrange(Date)
 
 sensor_parameters_df <- read_csv("./data/sensor_parameters.csv")
 
@@ -36,21 +37,15 @@ wq_qc_flags <- qc_flags %>%
 met_qc_flags <- qc_flags %>%
   filter(category == "met") 
 
-# The key is an inventory of available CSVs that can be imported
-# and includes year - sensor - status (QAQC or RAW) - site information based on filepaths
-# key <- as.data.frame(list(list.files("./data/")), col.names = "filepath") %>%
-#   filter(filepath != "headers.csv") %>%
-#   mutate(name = gsub(".csv", "", filepath),
-#          # Imported tracks whether the application has imported particular datasets
-#          imported = FALSE) %>%
-#   # Separate file name into columns
-#   separate(name, into = c("year", "sensor", "status", "site"), sep = "_") %>%
-#   mutate(sensor = gsub("([a-z])([A-Z])", "\\1 \\2", sensor, perl = TRUE)) %>%
-#   filter(status == "QAQC")
-
 named_sensor_vector <- c("Turbidity" = "Turbidity_0",
                          "Conductivity" = "Conductivity_Temp_0",
-                         "Optical Dissolved Oxygen" = "Optical_DO_0")
+                         "Optical Dissolved Oxygen" = "Optical_DO_0",
+                         "Depth" = "Depth_0",
+                         "Fluorescent Dissolved Oxygen Matter" = "fDOM_0",
+                         "Wiper" = "Wiper_0",
+                         "pH" = "pH_0",
+                         "EXO2 Sonde" = "EXO2_Sonde_0",
+                         "Total Algae" = "Total_Algae_BGA_PE_0")
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)

@@ -125,7 +125,8 @@ function(input, output, session) {
     # Update parameters based on sensor selection
     sensor_parameters(
       sensor_parameters_df %>%
-        filter(sensor %in% input$sensor_qc) %>%
+        filter(sensor %in% input$sensor_qc,
+               parameter %in% colnames(current_data$df)) %>%
         pull(parameter)
     )
   })
@@ -159,6 +160,7 @@ function(input, output, session) {
         
         qc_output$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/",
                                                annotation_filename)) %>%
+          mutate_all(as.character) %>%
           mutate(timestamp = ymd_hms(timestamp))
       }
       
@@ -234,7 +236,7 @@ function(input, output, session) {
                                       "Passed initial QAQC check" = "grey", 
                                       "Suspect Data" = "#e08214", 
                                       "QC Flag Applied" = "#2166ac")) +
-        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE) +
+        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = TRUE) +
         theme_bw() + 
         theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
               axis.title = element_blank(),
@@ -257,7 +259,7 @@ function(input, output, session) {
         gather(key="variable", value = "measurement", -timestamp, na.rm = TRUE) %>%
         ggplot(aes(timestamp, measurement)) +
         geom_point() +
-        coord_cartesian(xlim = ranges$x, expand = FALSE) +
+        coord_cartesian(xlim = ranges$x, expand = TRUE) +
         # facet_grid(variable ~ .) +
         theme_bw() + 
         theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
