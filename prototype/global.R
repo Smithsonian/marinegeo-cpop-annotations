@@ -14,15 +14,16 @@ library(rdrop2)
 library(DT)
 
 # Load dropbox token
-drop_auth(rdstoken = "droptoken.rds")
+drop_auth(rdstoken = "./droptoken.rds")
 
 # Get filenames to populate UI for now
-bundled_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/QAQC_bundles/") %>%
+bundled_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/") %>%
   pull(name)
 
 key <- as_tibble(bundled_directory) %>%
   rename(Filename = value) %>%
-  separate(Filename, into = c("Site", "File Type", "Date", "Status"), remove = FALSE) %>%
+  separate(Filename, into = c("Site", "File Type", "Date", "Status"), sep = "_", remove = FALSE) %>%
+  mutate(Status = gsub(".csv", "", Status)) %>%
   select(everything(), Filename) %>%
   arrange(Date)
 
@@ -37,15 +38,17 @@ wq_qc_flags <- qc_flags %>%
 met_qc_flags <- qc_flags %>%
   filter(category == "met") 
 
-named_sensor_vector <- c("Turbidity" = "Turbidity_0",
-                         "Conductivity" = "Conductivity_Temp_0",
-                         "Optical Dissolved Oxygen" = "Optical_DO_0",
-                         "Depth" = "Depth_0",
-                         "Fluorescent Dissolved Oxygen Matter" = "fDOM_0",
-                         "Wiper" = "Wiper_0",
-                         "pH" = "pH_0",
-                         "EXO2 Sonde" = "EXO2_Sonde_0",
-                         "Total Algae" = "Total_Algae_BGA_PE_0")
+sensor_vector_l1 <- c("Turbidity" = "Turbidity_0",
+                      "Conductivity" = "Conductivity_Temp_0",
+                      "Optical Dissolved Oxygen" = "Optical_DO_0",
+                      "Depth" = "Depth_0",
+                      "Fluorescent Dissolved Organic Matter" = "fDOM_0",
+                      "Wiper" = "Wiper_0",
+                      "pH" = "pH_0",
+                      "EXO2 Sonde" = "EXO2_Sonde_0",
+                      "Total Algae" = "Total_Algae_BGA_PE_0")
+
+sensor_vector_l2 <- paste0(sensor_vector_l1, "C")
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)
@@ -77,9 +80,10 @@ if(nrow(annotation_directory) == 0){
 } else {
   annotation_directory <- annotation_directory %>%
     select(name) %>%
-    separate(name, into = c("filename", "technician_code"), sep = "-", remove = FALSE) %>%
-    mutate(filename = paste0(filename, ".csv"),
-           technician_code = gsub(".csv", "", technician_code))
+    mutate(filename = gsub("-L2", "", name))
+    # separate(name, into = c("filename", "technician_code"), sep = "-", remove = FALSE) %>%
+    # mutate(filename = paste0(filename, ".csv"),
+    #        technician_code = gsub(".csv", "", technician_code))
 }
 
 # Record working directory to return to after moving to temporary directory

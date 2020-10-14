@@ -5,7 +5,7 @@ function(input, output, session) {
   current_data <- reactiveValues(df=data.frame())
   # Empty dataframe will hold points selected for QC and associated QC codes
   qc_output <- reactiveValues(df = tibble(timestamp = as.POSIXct(NA), 
-                                          parameter = as.character(NA),
+                                          sensor = as.character(NA),
                                           code = as.character(NA), 
                                           .rows = 0))
   
@@ -19,20 +19,19 @@ function(input, output, session) {
   
   ## Track QC progress info box ####
   current_qc_progress <- reactive({
-    
-    num_rows <- nrow(current_data$df)
-    
-    if(num_rows > 0){
-      sum_qc_rows <- sum(current_data$df$qc_tech_flag)
-      paste0(round(sum_qc_rows / num_rows * 100), "%")
-      
-    } else {
-      "No Data Loaded"
-    }
+    "NA"
+    # num_rows <- nrow(current_data$df)
+    # 
+    # if(num_rows > 0){
+    #   sum_qc_rows <- sum(current_data$df$l1_tag_present)
+    #   paste0(round(sum_qc_rows / num_rows * 100), "%")
+    #   
+    # } else {
+    #   "No Data Loaded"
+    # }
   })
   
   ## Subset data inventory ####
-
   data_inventory <- reactive({
     subset_key <- key
     
@@ -93,13 +92,13 @@ function(input, output, session) {
   
   getSensorFlags <- reactive({
     
-    if(input$sensor_qc %in% names(named_sensor_vector)){
-      sensor_numeric_flag <- unname(named_sensor_vector[input$sensor_qc])
+    if(input$sensor_qc %in% names(sensor_vector_l1)){
+      sensor_l1_flag <- unname(sensor_vector_l1[input$sensor_qc])
       
       unique(
         current_data$df %>%
-          select(sensor_numeric_flag) %>%
-          pull(sensor_numeric_flag)
+          select(sensor_l1_flag) %>%
+          pull(sensor_l1_flag)
       )
     } else {
       ""
@@ -142,15 +141,14 @@ function(input, output, session) {
       current_file(selected_file)
       
       # Read in CSV given filepath
-      current_data$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/QAQC_bundles/", 
+      current_data$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/", 
                                               selected_file))
       
       # Convert timestamp to POSIXct
       current_data$df <- current_data$df %>%
         select(-timestamp) %>%
         rename(timestamp = timestamp2) %>%
-        mutate(timestamp = ymd_hms(timestamp),
-               qc_tech_flag = FALSE) 
+        mutate(timestamp = ymd_hms(timestamp)) 
       
       # Check if current filename has previous annotations and read them in
       if(current_file() %in% annotation_directory$filename){
@@ -162,12 +160,20 @@ function(input, output, session) {
                                                annotation_filename)) %>%
           mutate_all(as.character) %>%
           mutate(timestamp = ymd_hms(timestamp))
+        
+      } else {
+        qc_output$df <- current_data$df %>%
+          select(timestamp, any_of(unname(sensor_vector_l2))) %>%
+          pivot_longer(cols = any_of(unname(sensor_vector_l2)),
+                       names_to = "sensor",
+                       values_to = "code") %>%
+          mutate(file = current_file()) %>%
+          filter(!is.na(code))
+          
       }
       
       current_data$df <- current_data$df %>%
-        mutate(qc_tech_flag = ifelse(timestamp %in% qc_output$df$timestamp,
-                                     TRUE, qc_tech_flag)) %>%
-        mutate_at(unname(named_sensor_vector),
+        mutate_at(unname(sensor_vector_l1),
                   funs(case_when(
                     . == "-5" ~ "Outside high range",
                     . == "-4" ~ "Outside low range",
@@ -204,26 +210,24 @@ function(input, output, session) {
     # Prevents error message from getting written to UI upon app startup
     tryCatch({
       
-      sensor_numeric_flag <- unname(named_sensor_vector[input$sensor_qc])
+      sensor_l1_flag <- unname(sensor_vector_l1[input$sensor_qc])
+      sensor_l2_flag <- paste0(sensor_l1_flag, "C")
       
+      # Determine if observations for current sensor have been annotated
+      l2_timestamps <- qc_output$df %>%
+        filter(sensor == sensor_l2_flag) %>%
+        pull(timestamp)
+        
       current_data$df %>%
-        select(timestamp, qc_tech_flag, all_of(sensor_numeric_flag), all_of(input$parameter_qc)) %>%
-        filter(!!sym(sensor_numeric_flag) %in% input$filter_flag) %>%
+        select(timestamp, all_of(sensor_l1_flag), all_of(input$parameter_qc)) %>%
+        filter(!!sym(sensor_l1_flag) %in% input$filter_flag) %>%
         mutate(numeric_label = case_when(
-          qc_tech_flag ~ "QC Flag Applied",
-          # !!sym(sensor_numeric_flag) == "-5" ~ "Outside high range",
-          # !!sym(sensor_numeric_flag) == "-4" ~ "Outside low range",
-          # !!sym(sensor_numeric_flag) == "-3" ~ "Data rejected due to QAQC",
-          # !!sym(sensor_numeric_flag) == "-2" ~ "Missing Data",
-          # !!sym(sensor_numeric_flag) == "-1" ~ "Optional parameter, not collected",
-          # !!sym(sensor_numeric_flag) == "0" ~ "Passed initial QAQC check",
-          # !!sym(sensor_numeric_flag) == "1" ~ "Suspect Data",
-          # !!sym(sensor_numeric_flag) == "2" ~ "Reserved for Future Use",
-          T ~ !!sym(sensor_numeric_flag)
+          #!is.na(!!sym(sensor_l2_flag)) ~ "QC Flag Applied",
+          timestamp %in% l2_timestamps ~ "QC Flag Applied",
+          T ~ !!sym(sensor_l1_flag)
         )) %>%
         mutate(!!input$parameter_qc := case_when(
-        #  !!sym(sensor_numeric_flag) == "-2" ~ parameter_mean(),
-          !!sym(sensor_numeric_flag) == "Missing Data" ~ parameter_mean(),
+          !!sym(sensor_l1_flag) == "Missing Data" ~ parameter_mean(),
           T ~ !!sym(input$parameter_qc)
         )) %>%
         ggplot(aes_string("timestamp", all_of(input$parameter_qc), color = "numeric_label")) +
@@ -298,13 +302,8 @@ function(input, output, session) {
   ranges <- reactiveValues(x = NULL, y = NULL)
   
   observeEvent(input$plot_dblclick, {
-    # REMOVING DISTINCTION BETWEEN ZOOM AND SELECT FOR NOW
-    # it does not provide any functionality
-    
-    # If the user has selected zoom, then the everything within a drawn box will be zoomed into
-    # Or an existing zoom will be cancelled
-    # if(input$figure_functionality == "Zoom"){
-      brush <- input$plot_brush
+      
+    brush <- input$plot_brush
       
       if (!is.null(brush)) {
         ranges$x <- c(as.POSIXct(brush$xmin, origin = "1970-01-01"),
@@ -315,9 +314,6 @@ function(input, output, session) {
         ranges$x <- NULL
         ranges$y <- NULL
       }
-    #} else if(input$figure_functionality == "Select"){
-
-    #}
 
   })
   
@@ -326,7 +322,7 @@ function(input, output, session) {
     
     # By default, the table will show the timestamp, the selected QAQC parameter, and the QC numeric flag
     data_subset <- current_data$df %>%
-      select(timestamp, input$parameter_qc, unname(named_sensor_vector[input$sensor_qc]))
+      select(timestamp, input$parameter_qc, unname(sensor_vector_l1[input$sensor_qc]))
     
     brush_subset <- brushedPoints(data_subset, input$plot_brush,
                                   yvar = input$parameter_qc) 
@@ -356,54 +352,39 @@ function(input, output, session) {
   ## Apply QC logic ####
   observeEvent(input$apply_qc, {
     
-    # If the brush functionality is "select", all selected QC codes will be associated with each selected point
-    # if(input$figure_functionality == "Select"){
-      
-      sensor_numeric_flag <- unname(named_sensor_vector[input$sensor_qc])
-      
-      data_subset <- current_data$df %>%
-        mutate(!!input$parameter_qc := case_when(
-          !!sym(sensor_numeric_flag) == "Missing Data" ~ parameter_mean(),
-          T ~ !!sym(input$parameter_qc)
-        )) %>%
-        select(timestamp, input$parameter_qc)
-      
-      # Returns points under the brush
-      brush_subset <- brushedPoints(data_subset, input$plot_brush,
-                                    yvar = input$parameter_qc) 
-      
-      # Right now, bind WQ and MET codes together
-      codes <- qc_flags %>%
-        filter(select_inputs %in% c(input$wq_qc_flags, input$met_qc_flags)) %$%
-        paste(unique(.$code), collapse = ",")
-      
-      #codes <- paste0(input$wq_qc_flags, input$met_qc_flags, sep= ",")
-      
-      qc_output$df <- brush_subset %>%
-        mutate(# timestamp = as.character(timestamp),
-               parameter = input$parameter_qc,
-               sensor = input$sensor_qc,
-               code = codes,
-               file = current_file()) %>%
-        select(-input$parameter_qc) %>%
-        separate_rows(code, sep=",") %>%
-        bind_rows(qc_output$df)
-
-      current_data$df <- current_data$df %>%
-        mutate(qc_tech_flag = ifelse(timestamp %in% brush_subset$timestamp,
-                                        TRUE, qc_tech_flag))
-      
-    # } else {
-    #   showModal(modalDialog(
-    #     title = "Select data mode not activated",
-    #     "QC flags will only be associated with data while the \"Select\" mode is active above. Move toggle from \"Zoom\" to \"Select\""
-    #   ))
-    # }
+    sensor_l1_flag <- unname(sensor_vector_l1[input$sensor_qc])
+    sensor_l2_flag <- paste0(sensor_l1_flag, "C")
+    
+    data_subset <- current_data$df %>%
+      mutate(!!input$parameter_qc := case_when(
+        !!sym(sensor_l1_flag) == "Missing Data" ~ parameter_mean(),
+        T ~ !!sym(input$parameter_qc)
+      )) %>%
+      select(timestamp, input$parameter_qc)
+    
+    # Returns points under the brush
+    brush_subset <- brushedPoints(data_subset, input$plot_brush,
+                                  yvar = input$parameter_qc) 
+    
+    # Right now, bind WQ and MET codes together
+    codes <- qc_flags %>%
+      filter(select_inputs %in% c(input$wq_qc_flags, input$met_qc_flags)) %$%
+      paste(unique(.$code), collapse = ",")
+    
+    #codes <- paste0(input$wq_qc_flags, input$met_qc_flags, sep= ",")
+    
+    qc_output$df <- brush_subset %>%
+      mutate(sensor = sensor_l2_flag,
+             code = codes,
+             file = current_file()) %>%
+      select(-input$parameter_qc) %>%
+      separate_rows(code, sep=",") %>%
+      bind_rows(qc_output$df)
+    
   })
   
   ## Remove QC flags ####
   output$remove_flags <- renderUI({
-
     selectInput("select_remove_flags", "Select QC flags to remove",
                 choices = unique(qc_output$df$code), multiple = TRUE)
     
@@ -418,9 +399,6 @@ function(input, output, session) {
       qc_output$df <- qc_output$df %>%
         filter(!(code %in% input$select_remove_flags))
       
-      current_data$df <- current_data$df %>%
-        mutate(qc_tech_flag = ifelse(timestamp %in% points_to_remove$timestamp & !(timestamp %in% qc_output$df$timestamp),
-                                     FALSE, qc_tech_flag))
     }
   })
   
@@ -436,20 +414,20 @@ function(input, output, session) {
     setwd(tempdir())
     
     #if(nrow(qc_output$df) > 0){
+    
+    write_csv(qc_output$df,
+              paste0(filename, ".csv"))
+    
+    drop_upload(paste0(filename, ".csv"),
+                path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/")
+    
+    showModal(modalDialog(
+      title = "Annotations saved", 
+      div("Your annotations have been saved."),
       
-      write_csv(qc_output$df,
-                paste0(filename, ".csv"))
-      
-      drop_upload(paste0(filename, ".csv"),
-                  path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/")
-      
-      showModal(modalDialog(
-        title = "Annotations saved", 
-        div("Your annotations have been saved. To continue using this application without submitting the same annotations again, either refresh or remove all annotations."),
-        
-        easyClose = TRUE
-      ))
-      
+      easyClose = TRUE
+    ))
+    
     #}
     
     setwd(original_wd)

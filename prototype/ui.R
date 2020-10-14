@@ -72,7 +72,7 @@ body <- dashboardBody(
                          collapsible = TRUE,
 
                          selectInput("sensor_qc", "Select a sensor",
-                                     c("", names(named_sensor_vector)),
+                                     c("", names(sensor_vector_l1)),
                                      multiple = FALSE),
                          
                          # conditional dropdown for sensor parameters at selected site and sensor
