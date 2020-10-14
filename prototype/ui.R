@@ -127,20 +127,16 @@ body <- dashboardBody(
                          )),
                      box(width = NULL,
                          title = "Quality Control Plot",
-                         plotOutput("plot_qc",
-                                    dblclick = "plot_dblclick",
-                                    brush = brushOpts(
-                                      id = "plot_brush",
-                                      #direction = "x", # brush will only move horizontally
-                                      resetOnNew = T # brush will be reset when the plot is updated
-                                    ))
+                         # plotOutput("plot_qc",
+                         #            dblclick = "plot_dblclick",
+                         #            brush = brushOpts(
+                         #              id = "plot_brush",
+                         #              #direction = "x", # brush will only move horizontally
+                         #              resetOnNew = T # brush will be reset when the plot is updated
+                         #            ))
                          
-                         # tabPanel(title = "Facet Plot",
-                         #          # select any number of parameters to create a facet plot
-                         #          selectInput("facet_parameters", "Create a facet plot by picking any number of parameters",
-                         #                      choices = parameters,
-                         #                      multiple = TRUE),
-                         #          plotOutput("plot_facet")),
+                         plotlyOutput("plot_qc")
+                         
                      ),
                      box(width = NULL,
                          title = "Reference Plot",

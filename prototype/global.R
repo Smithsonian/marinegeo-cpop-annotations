@@ -12,6 +12,7 @@ library(tidyr)
 library(data.table)
 library(rdrop2)
 library(DT)
+library(plotly)
 
 # Load dropbox token
 drop_auth(rdstoken = "./droptoken.rds")

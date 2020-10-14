@@ -203,12 +203,12 @@ function(input, output, session) {
     }
   })
   
-  ## Plots ####
+  ## Plotly conversion ####
   # Generate a plot of the data 
-  output$plot_qc <- renderPlot({
+  output$plot_qc <- renderPlotly({
     
     # Prevents error message from getting written to UI upon app startup
-    tryCatch({
+    #tryCatch({
       
       sensor_l1_flag <- unname(sensor_vector_l1[input$sensor_qc])
       sensor_l2_flag <- paste0(sensor_l1_flag, "C")
@@ -217,41 +217,106 @@ function(input, output, session) {
       l2_timestamps <- qc_output$df %>%
         filter(sensor == sensor_l2_flag) %>%
         pull(timestamp)
-        
+      
       current_data$df %>%
         select(timestamp, all_of(sensor_l1_flag), all_of(input$parameter_qc)) %>%
-        filter(!!sym(sensor_l1_flag) %in% input$filter_flag) %>%
-        mutate(numeric_label = case_when(
-          #!is.na(!!sym(sensor_l2_flag)) ~ "QC Flag Applied",
-          timestamp %in% l2_timestamps ~ "QC Flag Applied",
-          T ~ !!sym(sensor_l1_flag)
-        )) %>%
+        # Provide values to missing data
         mutate(!!input$parameter_qc := case_when(
           !!sym(sensor_l1_flag) == "Missing Data" ~ parameter_mean(),
           T ~ !!sym(input$parameter_qc)
         )) %>%
-        ggplot(aes_string("timestamp", all_of(input$parameter_qc), color = "numeric_label")) +
-        geom_point() +
-        scale_color_manual(values = c("Outside high range" = "#67001f",
-                                      "Outside low range" = "#b2182b",
-                                      "Data rejected due to QAQC" = "#d6604d",
-                                      "Missing Data" = "#f4a582",
-                                      "Optional parameter, not collected" = "#fddbc7",
-                                      "Passed initial QAQC check" = "grey", 
-                                      "Suspect Data" = "#e08214", 
-                                      "QC Flag Applied" = "#2166ac")) +
-        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = TRUE) +
-        theme_bw() + 
-        theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
-              axis.title = element_blank(),
-              legend.position = "top",
-              legend.title=element_blank(), 
-              text=element_text(size=18)) +
-        ylab("")
-
-      }, error = function(e){
-    })
+        # Create plotly object
+        plot_ly(x = ~timestamp, y = ~get(input$parameter_qc), color = ~get(sensor_l1_flag), 
+                type = "scatter") %>%
+        layout(legend = list(orientation = 'h'),
+               xaxis = list(title = ""),
+               showlegend = TRUE) %>%
+        toWebGL()  # Conversion from SVG drastically improves performance
+      
+      # current_data$df %>%
+      #   select(timestamp, all_of(sensor_l1_flag), all_of(input$parameter_qc)) %>%
+      #   filter(!!sym(sensor_l1_flag) %in% input$filter_flag) %>%
+      #   mutate(numeric_label = case_when(
+      #     timestamp %in% l2_timestamps ~ "QC Flag Applied",
+      #     T ~ !!sym(sensor_l1_flag)
+      #   )) %>%
+      #   mutate(!!input$parameter_qc := case_when(
+      #     !!sym(sensor_l1_flag) == "Missing Data" ~ parameter_mean(),
+      #     T ~ !!sym(input$parameter_qc)
+      #   )) %>%
+      #   ggplot(aes_string("timestamp", all_of(input$parameter_qc), color = "numeric_label")) +
+      #   geom_point() +
+      #   scale_color_manual(values = c("Outside high range" = "#67001f",
+      #                                 "Outside low range" = "#b2182b",
+      #                                 "Data rejected due to QAQC" = "#d6604d",
+      #                                 "Missing Data" = "#f4a582",
+      #                                 "Optional parameter, not collected" = "#fddbc7",
+      #                                 "Passed initial QAQC check" = "grey", 
+      #                                 "Suspect Data" = "#e08214", 
+      #                                 "QC Flag Applied" = "#2166ac")) +
+      #   coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = TRUE) +
+      #   theme_bw() + 
+      #   theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
+      #         axis.title = element_blank(),
+      #         legend.position = "top",
+      #         legend.title=element_blank(), 
+      #         text=element_text(size=18)) +
+      #   ylab("")
+      
+    #}, error = function(e){
+    #})
   })
+  
+  
+  
+  ## Plots ####
+  # Generate a plot of the data 
+  # output$plot_qc <- renderPlot({
+  #   
+  #   # Prevents error message from getting written to UI upon app startup
+  #   tryCatch({
+  #     
+  #     sensor_l1_flag <- unname(sensor_vector_l1[input$sensor_qc])
+  #     sensor_l2_flag <- paste0(sensor_l1_flag, "C")
+  #     
+  #     # Determine if observations for current sensor have been annotated
+  #     l2_timestamps <- qc_output$df %>%
+  #       filter(sensor == sensor_l2_flag) %>%
+  #       pull(timestamp)
+  #       
+  #     current_data$df %>%
+  #       select(timestamp, all_of(sensor_l1_flag), all_of(input$parameter_qc)) %>%
+  #       filter(!!sym(sensor_l1_flag) %in% input$filter_flag) %>%
+  #       mutate(numeric_label = case_when(
+  #         timestamp %in% l2_timestamps ~ "QC Flag Applied",
+  #         T ~ !!sym(sensor_l1_flag)
+  #       )) %>%
+  #       mutate(!!input$parameter_qc := case_when(
+  #         !!sym(sensor_l1_flag) == "Missing Data" ~ parameter_mean(),
+  #         T ~ !!sym(input$parameter_qc)
+  #       )) %>%
+  #       ggplot(aes_string("timestamp", all_of(input$parameter_qc), color = "numeric_label")) +
+  #       geom_point() +
+  #       scale_color_manual(values = c("Outside high range" = "#67001f",
+  #                                     "Outside low range" = "#b2182b",
+  #                                     "Data rejected due to QAQC" = "#d6604d",
+  #                                     "Missing Data" = "#f4a582",
+  #                                     "Optional parameter, not collected" = "#fddbc7",
+  #                                     "Passed initial QAQC check" = "grey", 
+  #                                     "Suspect Data" = "#e08214", 
+  #                                     "QC Flag Applied" = "#2166ac")) +
+  #       coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = TRUE) +
+  #       theme_bw() + 
+  #       theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
+  #             axis.title = element_blank(),
+  #             legend.position = "top",
+  #             legend.title=element_blank(), 
+  #             text=element_text(size=18)) +
+  #       ylab("")
+  # 
+  #     }, error = function(e){
+  #   })
+  # })
   
   output$plot_reference <- renderPlot({
     
