@@ -169,7 +169,6 @@ function(input, output, session) {
                        values_to = "code") %>%
           mutate(file = current_file()) %>%
           filter(!is.na(code))
-          
       }
       
       current_data$df <- current_data$df %>%
@@ -226,7 +225,7 @@ function(input, output, session) {
           T ~ !!sym(input$parameter_qc)
         )) %>%
         # Create plotly object
-        plot_ly(x = ~timestamp, y = ~get(input$parameter_qc), color = ~get(sensor_l1_flag), 
+        plot_ly(x = ~timestamp, y = ~get(input$parameter_qc), color = ~get(sensor_l1_flag), key=~timestamp, 
                 type = "scatter") %>%
         layout(legend = list(orientation = 'h'),
                xaxis = list(title = ""),
@@ -266,7 +265,6 @@ function(input, output, session) {
     #}, error = function(e){
     #})
   })
-  
   
   
   ## Plots ####
@@ -328,7 +326,7 @@ function(input, output, session) {
         gather(key="variable", value = "measurement", -timestamp, na.rm = TRUE) %>%
         ggplot(aes(timestamp, measurement)) +
         geom_point() +
-        coord_cartesian(xlim = ranges$x, expand = TRUE) +
+        # coord_cartesian(xlim = ranges$x, expand = TRUE) +
         # facet_grid(variable ~ .) +
         theme_bw() + 
         theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
@@ -364,24 +362,23 @@ function(input, output, session) {
   # })
   
   # Adapted from https://shiny.rstudio.com/gallery/plot-interaction-zoom.html
-  ranges <- reactiveValues(x = NULL, y = NULL)
+  # ranges <- reactiveValues(x = NULL, y = NULL)
   
-  observeEvent(input$plot_dblclick, {
-      
-    brush <- input$plot_brush
-      
-      if (!is.null(brush)) {
-        ranges$x <- c(as.POSIXct(brush$xmin, origin = "1970-01-01"),
-                      as.POSIXct(brush$xmax, origin = "1970-01-01"))
-        ranges$y <- c(brush$ymin, brush$ymax)
-
-      } else {
-        ranges$x <- NULL
-        ranges$y <- NULL
-      }
-
-  })
-  
+  # observeEvent(input$plot_dblclick, {
+  #     
+  #   brush <- input$plot_brush
+  #     
+  #     if (!is.null(brush)) {
+  #       ranges$x <- c(as.POSIXct(brush$xmin, origin = "1970-01-01"),
+  #                     as.POSIXct(brush$xmax, origin = "1970-01-01"))
+  #       ranges$y <- c(brush$ymin, brush$ymax)
+  # 
+  #     } else {
+  #       ranges$x <- NULL
+  #       ranges$y <- NULL
+  #     }
+  # 
+  # })
   
   output$table_selected_points <- renderDataTable({
     
@@ -389,14 +386,28 @@ function(input, output, session) {
     data_subset <- current_data$df %>%
       select(timestamp, input$parameter_qc, unname(sensor_vector_l1[input$sensor_qc]))
     
-    brush_subset <- brushedPoints(data_subset, input$plot_brush,
-                                  yvar = input$parameter_qc) 
+    brush_subset <- event_data("plotly_selected")
     
-    print(brush_subset)
-    
-    if(nrow(brush_subset) == 0){
+    if (!is.null(brush_subset)){
+      brush_subset <- brush_subset %>%
+        mutate(key = ymd_hms(key))
+      
+      datatable(
+        data_subset %>%
+          filter(timestamp %in% brush_subset$key)
+      )
+    } else {
       datatable(data_subset)
-    } else {datatable(brush_subset)}
+    }
+    
+    # brush_subset <- brushedPoints(data_subset, input$plot_brush,
+    #                               yvar = input$parameter_qc) 
+    # 
+    # print(brush_subset)
+    # 
+    # if(nrow(brush_subset) == 0){
+    #   datatable(data_subset)
+    # } else {datatable(brush_subset)}
     
   })
   
@@ -427,25 +438,36 @@ function(input, output, session) {
       )) %>%
       select(timestamp, input$parameter_qc)
     
-    # Returns points under the brush
-    brush_subset <- brushedPoints(data_subset, input$plot_brush,
-                                  yvar = input$parameter_qc) 
+    brush_subset <- event_data("plotly_selected") %>%
+        mutate(key = ymd_hms(key))
     
-    # Right now, bind WQ and MET codes together
+    # # Returns points under the brush
+    # brush_subset <- brushedPoints(data_subset, input$plot_brush,
+    #                               yvar = input$parameter_qc) 
+    # 
+    # # Right now, bind WQ and MET codes together
     codes <- qc_flags %>%
       filter(select_inputs %in% c(input$wq_qc_flags, input$met_qc_flags)) %$%
       paste(unique(.$code), collapse = ",")
+    # 
+    # #codes <- paste0(input$wq_qc_flags, input$met_qc_flags, sep= ",")
     
-    #codes <- paste0(input$wq_qc_flags, input$met_qc_flags, sep= ",")
+    # qc_output$df <- brush_subset %>%
+    #   mutate(sensor = sensor_l2_flag,
+    #          code = codes,
+    #          file = current_file()) %>%
+    #   select(-input$parameter_qc) %>%
+    #   separate_rows(code, sep=",") %>%
+    #   bind_rows(qc_output$df)
     
-    qc_output$df <- brush_subset %>%
+    qc_output$df <- data_subset %>%
+      filter(timestamp %in% brush_subset$key) %>%
       mutate(sensor = sensor_l2_flag,
              code = codes,
              file = current_file()) %>%
       select(-input$parameter_qc) %>%
       separate_rows(code, sep=",") %>%
       bind_rows(qc_output$df)
-    
   })
   
   ## Remove QC flags ####
