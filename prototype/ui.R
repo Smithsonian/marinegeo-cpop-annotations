@@ -78,9 +78,10 @@ body <- dashboardBody(
                          # conditional dropdown for sensor parameters at selected site and sensor
                          uiOutput("parameter_qc"),
                          
-                         # selectInput("parameter_qc", "Select a parameter to QC",
-                         #             sensor_parameters(), multiple = FALSE),
-                         uiOutput("filter_flag"),
+                         radioButtons("label_mode", "Plot labels",
+                                     choices = c("Highest level annotations",
+                                                 "Level 1 annotations only",
+                                                 "Level 2 annotations only")),
                          
                          selectInput("parameter_reference", "Select a reference parameter",
                                      parameters, multiple = FALSE)

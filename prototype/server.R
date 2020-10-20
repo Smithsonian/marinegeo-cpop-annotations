@@ -6,7 +6,7 @@ function(input, output, session) {
   # Empty dataframe will hold points selected for QC and associated QC codes
   qc_output <- reactiveValues(df = tibble(timestamp = as.POSIXct(NA), 
                                           sensor = as.character(NA),
-                                          code = as.character(NA), 
+                                          code = as.character(NA),
                                           .rows = 0))
   
   ## Sensor - Parameter UI logic
@@ -85,26 +85,31 @@ function(input, output, session) {
                 sensor_parameters(), multiple = FALSE)
   })
   
-  output$filter_flag <- renderUI({
-    selectInput("filter_flag", "Plot Initial QC Flags",
-                getSensorFlags(), multiple = TRUE, selected = getSensorFlags())
-  })
+  # label_mode_results <- reactive({
+  #   if(input$label_mode == "Most up to date annotations"){
+  #     
+  #   } else if (input$label_mode == "Level 1 annotations only"){
+  #     
+  #   } else {
+  #     
+  #   }
+  # })
   
-  getSensorFlags <- reactive({
-    
-    if(input$sensor_qc %in% names(sensor_vector_l1)){
-      sensor_l1_flag <- unname(sensor_vector_l1[input$sensor_qc])
-      
-      unique(
-        current_data$df %>%
-          select(sensor_l1_flag) %>%
-          pull(sensor_l1_flag)
-      )
-    } else {
-      ""
-    }
-    
-  })
+  # getSensorFlags <- reactive({
+  #   
+  #   if(input$sensor_qc %in% names(sensor_vector_l1)){
+  #     sensor_l1_flag <- unname(sensor_vector_l1[input$sensor_qc])
+  #     
+  #     unique(
+  #       current_data$df %>%
+  #         select(sensor_l1_flag) %>%
+  #         pull(sensor_l1_flag)
+  #     )
+  #   } else {
+  #     ""
+  #   }
+  #   
+  # })
   
   # NA values are currently getting plotted as the mean of the selected parameter
   # Only want to change the value before plotting, not the underlying data frame
@@ -147,7 +152,7 @@ function(input, output, session) {
       # Convert timestamp to POSIXct
       current_data$df <- current_data$df %>%
         select(-timestamp) %>%
-        rename(timestamp = timestamp2) %>%
+        rename(timestamp = timestamp3) %>%
         mutate(timestamp = ymd_hms(timestamp)) 
       
       # Check if current filename has previous annotations and read them in
@@ -174,15 +179,15 @@ function(input, output, session) {
       current_data$df <- current_data$df %>%
         mutate_at(unname(sensor_vector_l1),
                   funs(case_when(
-                    . == "-5" ~ "Outside high range",
-                    . == "-4" ~ "Outside low range",
-                    . == "-3" ~ "Data rejected due to QAQC",
-                    . == "-2" ~ "Missing Data",
-                    . == "-1" ~ "Optional parameter, not collected",
-                    . == "0" ~ "Passed initial QAQC check",
-                    . == "1" ~ "Suspect Data",
-                    . == "2" ~ "Reserved for Future Use",
-                    T ~ "Other Codes"
+                    . == "-5" ~ "Outside high range (L1)",
+                    . == "-4" ~ "Outside low range (L1)",
+                    . == "-3" ~ "Data rejected due to QAQC (L1)",
+                    . == "-2" ~ "Missing Data (L1)",
+                    . == "-1" ~ "Optional parameter, not collected (L1)",
+                    . == "0" ~ "Passed L1 QC",
+                    . == "1" ~ "Suspect Data (L1)",
+                    . == "2" ~ "Reserved for Future Use (L1)",
+                    T ~ "Other Codes (L1)"
                   )))
       
       current_site(data_inventory()[input$key_rows_selected,]$Site)
@@ -215,18 +220,42 @@ function(input, output, session) {
       # Determine if observations for current sensor have been annotated
       l2_timestamps <- qc_output$df %>%
         filter(sensor == sensor_l2_flag) %>%
-        pull(timestamp)
+        mutate(description = qc_flag_descriptions[code]) %>%
+        group_by(timestamp) %>%
+        summarize(description = paste(description, collapse = ", "))
       
-      current_data$df %>%
+      dat <- current_data$df %>%
         select(timestamp, all_of(sensor_l1_flag), all_of(input$parameter_qc)) %>%
+        merge(l2_timestamps, by="timestamp", all.x=TRUE) %>%
         # Provide values to missing data
         mutate(!!input$parameter_qc := case_when(
           !!sym(sensor_l1_flag) == "Missing Data" ~ parameter_mean(),
           T ~ !!sym(input$parameter_qc)
-        )) %>%
-        # Create plotly object
-        plot_ly(x = ~timestamp, y = ~get(input$parameter_qc), color = ~get(sensor_l1_flag), key=~timestamp, 
-                type = "scatter") %>%
+        ))
+        
+      if(input$label_mode == "Highest level annotations"){
+        dat <- dat %>%
+          # Change label for plots that have a L2 flag
+          mutate(!!sensor_l1_flag := case_when(
+            !is.na(description) ~ description,
+            T ~ !!sym(sensor_l1_flag)
+          )) 
+          
+      } else if (input$label_mode == "Level 2 annotations only"){
+        dat <- dat %>%
+          # Change label for plots that have a L2 flag
+          mutate(!!sensor_l1_flag := case_when(
+            !is.na(description) ~ description,
+            T ~ "No Level 2 annotation"
+          ))
+        
+      } else {
+        # No action needed to plot by L1 flags only
+      }
+      
+      plot_ly(dat, x = ~timestamp, y = ~get(input$parameter_qc), 
+              color = ~get(sensor_l1_flag), key=~timestamp,
+              type = "scatter") %>%
         layout(legend = list(orientation = 'h'),
                xaxis = list(title = ""),
                showlegend = TRUE) %>%
@@ -234,36 +263,25 @@ function(input, output, session) {
       
       # current_data$df %>%
       #   select(timestamp, all_of(sensor_l1_flag), all_of(input$parameter_qc)) %>%
-      #   filter(!!sym(sensor_l1_flag) %in% input$filter_flag) %>%
-      #   mutate(numeric_label = case_when(
-      #     timestamp %in% l2_timestamps ~ "QC Flag Applied",
-      #     T ~ !!sym(sensor_l1_flag)
-      #   )) %>%
+      #   merge(l2_timestamps, by="timestamp", all.x=TRUE) %>%
+      #   # Provide values to missing data
       #   mutate(!!input$parameter_qc := case_when(
       #     !!sym(sensor_l1_flag) == "Missing Data" ~ parameter_mean(),
       #     T ~ !!sym(input$parameter_qc)
       #   )) %>%
-      #   ggplot(aes_string("timestamp", all_of(input$parameter_qc), color = "numeric_label")) +
-      #   geom_point() +
-      #   scale_color_manual(values = c("Outside high range" = "#67001f",
-      #                                 "Outside low range" = "#b2182b",
-      #                                 "Data rejected due to QAQC" = "#d6604d",
-      #                                 "Missing Data" = "#f4a582",
-      #                                 "Optional parameter, not collected" = "#fddbc7",
-      #                                 "Passed initial QAQC check" = "grey", 
-      #                                 "Suspect Data" = "#e08214", 
-      #                                 "QC Flag Applied" = "#2166ac")) +
-      #   coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = TRUE) +
-      #   theme_bw() + 
-      #   theme(axis.text.x = element_text(angle = -30, vjust = 1, hjust = 0),
-      #         axis.title = element_blank(),
-      #         legend.position = "top",
-      #         legend.title=element_blank(), 
-      #         text=element_text(size=18)) +
-      #   ylab("")
+      #   # Change label for plots that have a L2 flag
+      #   mutate(!!sensor_l1_flag := case_when(
+      #     !is.na(description) ~ description,
+      #     T ~ !!sym(sensor_l1_flag)
+      #   )) %>%
+      #   # Create plotly object
+      #   plot_ly(x = ~timestamp, y = ~get(input$parameter_qc), color = ~get(sensor_l1_flag), key=~timestamp,
+      #           type = "scatter") %>%
+      #   layout(legend = list(orientation = 'h'),
+      #          xaxis = list(title = ""),
+      #          showlegend = TRUE) %>%
+      #   toWebGL()  # Conversion from SVG drastically improves performance
       
-    #}, error = function(e){
-    #})
   })
   
   
@@ -449,7 +467,7 @@ function(input, output, session) {
     codes <- qc_flags %>%
       filter(select_inputs %in% c(input$wq_qc_flags, input$met_qc_flags)) %$%
       paste(unique(.$code), collapse = ",")
-    # 
+    
     # #codes <- paste0(input$wq_qc_flags, input$met_qc_flags, sep= ",")
     
     # qc_output$df <- brush_subset %>%

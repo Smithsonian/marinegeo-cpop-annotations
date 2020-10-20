@@ -39,6 +39,9 @@ wq_qc_flags <- qc_flags %>%
 met_qc_flags <- qc_flags %>%
   filter(category == "met") 
 
+qc_flag_descriptions <- qc_flags$description
+names(qc_flag_descriptions) <- qc_flags$code
+
 sensor_vector_l1 <- c("Turbidity" = "Turbidity_0",
                       "Conductivity" = "Conductivity_Temp_0",
                       "Optical Dissolved Oxygen" = "Optical_DO_0",
