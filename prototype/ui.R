@@ -86,9 +86,6 @@ body <- dashboardBody(
                          selectInput("parameter_reference", "Select a reference parameter",
                                      parameters, multiple = FALSE)
                          
-                         # Select either zooming or selecting points
-                         # radioButtons("figure_functionality", "Choose to either zoom in on data or select points for QC",
-                         #              c("Zoom", "Select")),
                      ),
                      box(width = NULL,
                          title = "Select QC Tags",

@@ -218,6 +218,18 @@ function(input, output, session) {
     }
   })
   
+  output$date_range <- renderUI({
+    
+    if(nrow(current_data$df) > 0){
+      dateInput(inputId = "date_anchor",
+                label = "Select a date to anchor the x-axis",
+                value = min(current_data$df$timestamp),
+                min = min(current_data$df$timestamp),
+                max = max(current_data$df$timestamp),
+                startview = "year")
+    }
+  })
+  
   ## Plots ####
   # Generate a plot of the data 
   output$plot_qc <- renderPlotly({
@@ -278,8 +290,34 @@ function(input, output, session) {
     plot_ly(dat, x = ~timestamp, y = ~get(input$parameter_qc), 
             color = ~plot_labels, key=~timestamp,
             type = "scatter") %>%
-      layout(legend = list(orientation = 'h'),
-             xaxis = list(title = ""),
+      layout(legend = list(orientation = 'h',
+                           y = -.5),
+             xaxis = list(title = "",
+                          # range = c(
+                          #   as.character(input$date_anchor),
+                          #   substr(
+                          #     as.character(max(current_data$df$timestamp)),
+                          #     start = 1, stop = 10)),
+                          rangeselector = list(
+                            buttons = list(
+                              list(
+                                count = 1,
+                                label = "1 day",
+                                step = "day",
+                                stepmode = "tocount"),
+                              list(
+                                count = 7,
+                                label = "1 wk",
+                                step = "day",
+                                stepmode = "tocount"),
+                              list(
+                                count = 1,
+                                label = "1 mo",
+                                step = "month",
+                                stepmode = "tocount")
+                            )
+                          ),
+                          rangeslider = list(type = "date")),
              showlegend = TRUE) %>%
       toWebGL()  # Conversion from SVG drastically improves performance
     
