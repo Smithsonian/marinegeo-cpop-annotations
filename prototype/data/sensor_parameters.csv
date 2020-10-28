@@ -1,4 +1,4 @@
-﻿sensor,parameter,sensor_numeric_flag,,source
+sensor,parameter,sensor_numeric_flag,,source
 Conductivity,Cond_microS_cm,Conductivity_Temp_0,,Tower data
 Conductivity,Sal_psu,Conductivity_Temp_0,,Tower data
 Conductivity,Temp_C,Conductivity_Temp_0,,Tower data
@@ -9,8 +9,8 @@ Depth,Depth_m,Depth_0,,Tower data
 Depth,Depth,Depth_0,,Loggernet
 EXO2 Sonde,Battery_V,EXO2_Sonde_0,,Tower data
 EXO2 Sonde,Cable_Pwr_V,EXO2_Sonde_0,,Tower data
-Fluorescent Dissolved Oxygen Matter,fDOM_RFU,fDOM_0,,Tower data
-Fluorescent Dissolved Oxygen Matter,fDom,fDOM_0,,Loggernet
+Fluorescent Dissolved Organic Matter,fDOM_RFU,fDOM_0,,Tower data
+Fluorescent Dissolved Organic Matter,fDom,fDOM_0,,Loggernet
 Optical Dissolved Oxygen,ODO_mg_L,Optical_DO_0,,Tower data
 pH,pH,pH_0,,Tower data
 Total Algae,Chlorophyll_microg_L,Total_Algae_BGA_PE_0,,Tower data

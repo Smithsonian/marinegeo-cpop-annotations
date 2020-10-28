@@ -26,6 +26,7 @@ key <- as_tibble(bundled_directory) %>%
   separate(Filename, into = c("Site", "File Type", "Date", "Status"), sep = "_", remove = FALSE) %>%
   mutate(Status = gsub(".csv", "", Status)) %>%
   select(everything(), Filename) %>%
+  filter(Status == "QAQC") %>%
   arrange(Date)
 
 sensor_parameters_df <- read_csv("./data/sensor_parameters.csv")
