@@ -92,32 +92,6 @@ function(input, output, session) {
                 sensor_parameters(), multiple = FALSE)
   })
   
-  # label_mode_results <- reactive({
-  #   if(input$label_mode == "Most up to date annotations"){
-  #     
-  #   } else if (input$label_mode == "Level 1 annotations only"){
-  #     
-  #   } else {
-  #     
-  #   }
-  # })
-  
-  # getSensorFlags <- reactive({
-  #   
-  #   if(input$sensor_qc %in% names(sensor_vector_l1)){
-  #     sensor_l1_flag <- unname(sensor_vector_l1[input$sensor_qc])
-  #     
-  #     unique(
-  #       current_data$df %>%
-  #         select(sensor_l1_flag) %>%
-  #         pull(sensor_l1_flag)
-  #     )
-  #   } else {
-  #     ""
-  #   }
-  #   
-  # })
-  
   # NA values are currently getting plotted as the mean of the selected parameter
   # Only want to change the value before plotting, not the underlying data frame
   observeEvent(input$parameter_qc, {
@@ -218,18 +192,6 @@ function(input, output, session) {
     }
   })
   
-  output$date_range <- renderUI({
-    
-    if(nrow(current_data$df) > 0){
-      dateInput(inputId = "date_anchor",
-                label = "Select a date to anchor the x-axis",
-                value = min(current_data$df$timestamp),
-                min = min(current_data$df$timestamp),
-                max = max(current_data$df$timestamp),
-                startview = "year")
-    }
-  })
-  
   ## Plots ####
   # Generate a plot of the data 
   output$plot_qc <- renderPlotly({
@@ -290,34 +252,42 @@ function(input, output, session) {
     plot_ly(dat, x = ~timestamp, y = ~get(input$parameter_qc), 
             color = ~plot_labels, key=~timestamp,
             type = "scatter") %>%
-      layout(legend = list(orientation = 'h',
-                           y = -.5),
-             xaxis = list(title = "",
-                          # range = c(
-                          #   as.character(input$date_anchor),
-                          #   substr(
-                          #     as.character(max(current_data$df$timestamp)),
-                          #     start = 1, stop = 10)),
+      rangeslider(type = "date"
+                  #borderwidth = 1,
+                  #thickness = .15) %>%
+                  #yaxis = list(
+                    #range = c(40,60)
+                  ) %>%
+      layout(legend = list(orientation = 'h', # https://plotly.com/python/reference/layout/#layout-legend
+                           y = -.6),
+             yaxis = list(title = input$parameter_qc),
+             xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
                           rangeselector = list(
                             buttons = list(
                               list(
                                 count = 1,
                                 label = "1 day",
                                 step = "day",
-                                stepmode = "tocount"),
+                                stepmode = "todate"),
+                              list(
+                                count = 3,
+                                label = "3 days",
+                                step = "day",
+                                stepmode = "todate"),
                               list(
                                 count = 7,
                                 label = "1 wk",
                                 step = "day",
-                                stepmode = "tocount"),
+                                stepmode = "todate"),
                               list(
                                 count = 1,
                                 label = "1 mo",
                                 step = "month",
-                                stepmode = "tocount")
+                                stepmode = "todate")
                             )
-                          ),
-                          rangeslider = list(type = "date")),
+                          )),
+                          # rangeslider = list(bgcolor = '#000',
+                          #                    type = "date")),
              showlegend = TRUE) %>%
       toWebGL()  # Conversion from SVG drastically improves performance
     
