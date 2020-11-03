@@ -265,9 +265,9 @@ function(input, output, session) {
                           rangeselector = list(
                             buttons = list(
                               list(
-                                count = 1,
+                                count = 24,
                                 label = "1 day",
-                                step = "day",
+                                step = "hour",
                                 stepmode = "todate"),
                               list(
                                 count = 3,
