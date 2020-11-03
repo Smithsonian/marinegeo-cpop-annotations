@@ -137,7 +137,7 @@ function(input, output, session) {
         mutate(timestamp = ymd_hms(timestamp)) 
       
       l1_flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/", 
-                                       gsub("QAQC", "flagging_table", selected_file))) %>%
+                                       gsub("-data", "-flags", selected_file))) %>%
         mutate_all(as.character) %>%
         mutate(timestamp = ymd_hms(timestamp))
                                 
