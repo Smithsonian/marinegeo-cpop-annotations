@@ -31,76 +31,66 @@ key <- as_tibble(bundled_directory) %>%
 
 sensor_parameters_df <- read_csv("./data/sensor_parameters.csv")
 
-qc_flags <- read_csv("./data/qc_technician_codes.csv") %>%
-  mutate(select_inputs = paste(code, description, sep=" - "))
+qc_codes <- read_csv("./data/qc_technician_codes.csv") %>%
+  mutate(select_inputs = paste(code, description, sep=" - ")) %>%
+  filter(category == "water quality") %>%
+  mutate(code_type = case_when(
+    substr(code, 1, 1) == "C" ~ "comment",
+    substr(code, 1, 1) == "S" ~ "sensor",
+    substr(code, 1, 1) == "G" ~ "general",
+    T ~ NA_character_
+  ))
 
-wq_qc_flags <- qc_flags %>%
-  filter(category == "water quality") 
+qc_code_descriptions <- qc_codes$description
+names(qc_code_descriptions) <- qc_codes$code
 
-met_qc_flags <- qc_flags %>%
-  filter(category == "met") 
+sensor_codes <- qc_codes %>%
+  filter(code_type == "sensor" | code_type == "general")
 
-qc_flag_descriptions <- qc_flags$description
-names(qc_flag_descriptions) <- qc_flags$code
+comment_codes <- qc_codes %>%
+  filter(code_type == "comment")
 
-sensor_vector_l1 <- c("Turbidity" = "Turbidity_0",
-                      "Conductivity" = "Conductivity_Temp_0",
-                      "Optical Dissolved Oxygen" = "Optical_DO_0",
-                      "Depth" = "Depth_0",
-                      "Fluorescent Dissolved Organic Matter" = "fDOM_0",
-                      "Wiper" = "Wiper_0",
-                      "pH" = "pH_0",
-                      "EXO2 Sonde" = "EXO2_Sonde_0",
-                      "Total Algae" = "Total_Algae_BGA_PE_0")
+sensor_vector_l1 <- c("Turbidity" = "Turbidity",
+                      "Conductivity" = "Conductivity_Temp",
+                      "Optical Dissolved Oxygen" = "Optical_DO",
+                      "Depth" = "Depth",
+                      "Fluorescent Dissolved Organic Matter" = "fDOM",
+                      "Wiper" = "Wiper",
+                      "pH" = "pH",
+                      "EXO2 Sonde" = "EXO2_Sonde",
+                      "Total Algae" = "Total_Algae_BGA_PE")
 
-sensor_vector_l2 <- paste0(sensor_vector_l1, "C")
+qc_flags <- c("-5" = "Outside high range",
+              "-4" = "Outside low range",
+              "-3" = "Data rejected due to QAQC",
+              "-2" = "Missing Data",
+              "-1" = "Optional parameter, not collected",
+              "0" = "Passed L1 QC",
+              "1" = "Suspect Data")
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)
 
 # Get filenames of annotations
-annotation_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/") 
+annotation_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/", recursive = T) 
 
 # If there are no annotations in the directory a data frame with no rows or columns is returned. 
 # The app must have a df with a column "name"
 if(nrow(annotation_directory) == 0){
-  annotation_directory <- tibble(filename = NA_character_,
-                                 name = NA_character_,
-                                 technician_code = NA_character_,
-                                 .rows = 0)
-  # annotation_files <- annotation_directory %>%
-  #   pull(name)
-  # 
-  # annotations_df <- data.frame()
-  # 
-  # for(filename in annotation_files){
-  #   annotations_df <- annotations_df %>%
-  #     bind_rows(drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/",
-  #                                    filename)))
-  #   
-  # }
-  # 
-  # annotations_df <- annotations_df %>%
-  #   mutate(timestamp = ymd_hms(timestamp))
+  annotation_directory <- tibble(identifier = NA_character_, .rows = 0)
+
 } else {
+  # site-code_filetype_year_level_annotationtype
   annotation_directory <- annotation_directory %>%
+    filter(`.tag` == "file") %>%
     select(name) %>%
-    mutate(filename = gsub("-L2", "", name))
-    # separate(name, into = c("filename", "technician_code"), sep = "-", remove = FALSE) %>%
-    # mutate(filename = paste0(filename, ".csv"),
-    #        technician_code = gsub(".csv", "", technician_code))
+    separate(name, into = c("site_code", "file_type", "year", "level", "annotation_type"), sep = "_", remove = FALSE) %>%
+    mutate(annotation_type = gsub(".csv", "", annotation_type),
+           identifier = paste(site_code, file_type, year, sep = "_"))
 }
 
 # Record working directory to return to after moving to temporary directory
 original_wd <- getwd()
-
-# list of parameters for available sensors
-## For demo ####
-# # Changed Temp_.C to Temp_C
-# parameters <- c("Battery_V",	"Temp_C",	"Cond_µS_cm",	"SpCond_µS_cm",	"Sal_psu",	
-# "nLF_Cond_µS_cm",	"TDS_mg_L",	"ODO__sat",	"ODO__local", "ODO_mg_L",	"pH",	"pH_mV",	"Turbidity_FNU",	"TSS_mg_L",	"Chlorophyll_RFU",	"Chlorophyll_ug_L",
-# "BGA_PE_RFU",	"BGA_PE_ug_L",	"fDOM_RFU",	"fDOM_QSU",	"Depth_m")
-# 
 
 jscode <-
   '$(document).on("shiny:connected", function(e) {

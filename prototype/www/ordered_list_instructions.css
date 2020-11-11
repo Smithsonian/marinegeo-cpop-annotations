@@ -1,0 +1,32 @@
+ol {
+    display: block;
+    padding: 0 0 0 26px;
+    list-style: none;
+    overflow: hidden;
+    counter-reset: numList;
+}
+ol li {
+    width: 300px;
+    margin-right: 44px;
+    float: left;
+    position: relative
+}
+ol li:before {
+    counter-increment: numList;
+    content: counter(numList);
+    
+    float: left;
+    position: absolute;
+    left: -26px;
+    
+    font: bold 12px sans-serif;
+    text-align: center;
+    color: #fff;
+    line-height: 18px;
+    
+    width: 18px; height: 18px;
+    background: #666699;
+    
+    -moz-border-radius: 999px;
+    border-radius: 999px
+}

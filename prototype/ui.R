@@ -12,16 +12,18 @@ sidebar <- dashboardSidebar(
     menuItem("Load data", tabName = "load_data", icon = icon("database")),
     menuItem("Annotate data", tabName = "annotate_data", icon = icon("chart-line")),
     menuItem("Review tabular data", tabName = "tabular_data", icon = icon("table")),
-    menuItem("Review annotations", tabName = "review", icon = icon("clipboard-check"))
+    menuItem("Review annotations", tabName = "review", icon = icon("clipboard-check")),
+    
+    uiOutput("data_info_box")
   )
 )
 
 body <- dashboardBody(
-  fluidRow(
-    valueBoxOutput("site_info_box", width = 3),
-    valueBoxOutput("date_range_box", width = 6),
-    valueBoxOutput("annotation_progress_box", width = 3)
-  ),
+  # fluidRow(
+  #   valueBoxOutput("site_info_box", width = 3),
+  #   valueBoxOutput("date_range_box", width = 6),
+  #   valueBoxOutput("annotation_progress_box", width = 3)
+  # ),
   tabItems(
     tabItem("load_data",
             fluidRow(
@@ -65,83 +67,60 @@ body <- dashboardBody(
     ),
     tabItem("annotate_data",
             fluidRow(
-              column(width = 3,
+              # column(width = 2,
+              #        box(width = NULL,
+              #            uiOutput("quality_control_summary"))),
+              
+              column(width = 12,
                      box(width = NULL,
-                         title = "Select Parameters to QC",
-                         status = "primary",
-                         collapsible = TRUE,
-
-                         selectInput("sensor_qc", "Select a sensor",
-                                     c("", names(sensor_vector_l1)),
-                                     multiple = FALSE),
+                         title = NULL,
+                         status = "warning",
                          
-                         # conditional dropdown for sensor parameters at selected site and sensor
-                         uiOutput("parameter_qc"),
-                         
-                         radioButtons("label_mode", "Plot labels",
-                                     choices = c("Highest level annotations",
-                                                 "Level 1 annotations only",
-                                                 "Level 2 annotations only")),
-                         
-                         selectInput("parameter_reference", "Select a reference parameter",
-                                     parameters, multiple = FALSE)
-                         
-                     ),
-                     box(width = NULL,
-                         title = "Select QC Tags",
-                         status = "primary",
-                         collapsible = TRUE,
-                         
-                         # select QC flags
-                         selectInput("wq_qc_flags", "Water Quality QC flags",
-                                     choices = wq_qc_flags$select_inputs,
-                                     multiple = TRUE),
-                         
-                         selectInput("met_qc_flags", "MET QC flags",
-                                     choices = met_qc_flags$select_inputs,
-                                     multiple = TRUE),
-                         
-                         actionButton("apply_qc", "Apply QC flag to selected points")
+                         # Accept, reject, and/or revise flags
+                         uiOutput("quality_control_box")
                      )
+              )
+              
+            ),
+            
+            fluidRow(
+              column(width = 12,
+                     #align = "center",
                      
-              ),
-              column(width = 9,
                      box(width = NULL,
-                         title = "Instructions",
-                         collapsible = TRUE,
-                         collapsed = TRUE,
-                         div(
-                           tags$b("To Zoom: "), "Click and drag to create a bounding box over the region of interest. ",
-                           "Double-click within that box to zoom in. Double-click again to zoom back out.", tags$br(),
-                           tags$b("To Select Points: "), "Create the bounding box over the points you'd like to annotate. ",
-                           "Select the relevant quality control tags within the \"Select QC Flags\" box to the left of the plots, ",
-                           "and then click the \"Apply QC flag to selected points\" button.", 
-                           "Click once anywhere outside of the bounding box to cancel the selection.", tags$br(),
-                           tags$b("To Subset Plot: "), "You can filter the plot by specifying which level 1 QC flagged-points ",
-                           "you'd like to appear in the plot using the \"Plot Initial QC Flags\" input. By default, all level 1 flags are selected at start. ",
-                           "Remove the flags you do not want to be plotted.", tags$br(),
-                           tags$b("To Remove a Quality Control Flag: "), "You can remove a particular QC flag by navigating to the \"Review Annotations\" page, and ",
-                           "selecting the flag you'd like to remove. You cannot remove individual points from an annotation."
-                         )),
-                     box(width = NULL,
-                         title = "Quality Control Plot",
-                         # plotOutput("plot_qc",
-                         #            dblclick = "plot_dblclick",
-                         #            brush = brushOpts(
-                         #              id = "plot_brush",
-                         #              #direction = "x", # brush will only move horizontally
-                         #              resetOnNew = T # brush will be reset when the plot is updated
-                         #            ))
+                         title = NULL,
+                         status = "primary",
+
+                         splitLayout(
+                           style = "border: 1px solid silver;",
+                           cellWidths = "25%",
+                           cellArgs = list(style = "padding: 30px;"),
+                           selectInput("sensor_qc", "Select a sensor",
+                                       c("", names(sensor_vector_l1)),
+                                       multiple = FALSE),
+                           
+                           # conditional dropdown for sensor parameters at selected site and sensor
+                           uiOutput("parameter_qc"),
+                           
+                           radioButtons("label_mode", "Plot labels",
+                                        choices = c("Flags",
+                                                    "Codes")),
+                           
+                           selectInput("view_mode", "Show:",
+                                       choices = c("All points",
+                                                   "Flags that require review",
+                                                   "Only accepted flags",
+                                                   "Only rejected flags",
+                                                   "Points that require codes",
+                                                   "Highest level annotations"))
+                         ),
+                         tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
                          
+                         uiOutput("empty_plot_instructions"),
+                  
                          plotlyOutput("plot_qc")
                          
-                     ),
-                     box(width = NULL,
-                         title = "Reference Plot",
-                         collapsible = TRUE,
-                         collapsed = TRUE,
-                         plotOutput("plot_reference"))
-                     
+                     )
               )
             )
     ),
@@ -160,13 +139,13 @@ body <- dashboardBody(
                          title = "Review Quality Control",
                          # Plot summarizes qc flags by parameter - qc flag
                          dataTableOutput("table_summary_qc"),
-                         uiOutput("remove_flags"),
-                         actionButton("confirm_removal", "Confirm QC flag removal", class = "btn-warning"),
+                         uiOutput("remove_codes"),
+                         actionButton("confirm_removal", "Confirm QC code removal", class = "btn-warning"),
                          
                          div(tags$br()),
                          
                          textInput("tech_id", "Enter your technician code", "default_code"),
-                         actionButton("confirm_flags", "Confirm QC flag selections", class = "btn-primary"))
+                         actionButton("confirm_codes", "Confirm QC code selections", class = "btn-primary"))
 
                      
               )
