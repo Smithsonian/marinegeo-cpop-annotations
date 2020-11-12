@@ -24,6 +24,7 @@ body <- dashboardBody(
   #   valueBoxOutput("date_range_box", width = 6),
   #   valueBoxOutput("annotation_progress_box", width = 3)
   # ),
+  useShinyjs(),
   tabItems(
     tabItem("load_data",
             fluidRow(
@@ -59,8 +60,12 @@ body <- dashboardBody(
                          
                          tags$br(), 
                          
+                         tags$head(
+                           tags$style(HTML('#loadData{color:white}'))
+                         ),
+                         
                          # Read in data selected in table
-                         actionButton("loadData", "Load data", class = "primary")
+                         actionButton("loadData", "Load data", class = "btn-primary")
                      )
               )
             )
@@ -116,8 +121,6 @@ body <- dashboardBody(
                          ),
                          tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
                          
-                         uiOutput("empty_plot_instructions"),
-                  
                          plotlyOutput("plot_qc")
                          
                      )
@@ -145,7 +148,7 @@ body <- dashboardBody(
                          div(tags$br()),
                          
                          textInput("tech_id", "Enter your technician code", "default_code"),
-                         actionButton("confirm_codes", "Confirm QC code selections", class = "btn-primary"))
+                         actionButton("submit_codes", "Confirm QC code selections", class = "btn-primary"))
 
                      
               )

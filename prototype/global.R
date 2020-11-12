@@ -13,6 +13,7 @@ library(data.table)
 library(rdrop2)
 library(DT)
 library(plotly)
+library(shinyjs)
 
 # Load dropbox token
 drop_auth(rdstoken = "./droptoken.rds")
@@ -44,11 +45,17 @@ qc_codes <- read_csv("./data/qc_technician_codes.csv") %>%
 qc_code_descriptions <- qc_codes$description
 names(qc_code_descriptions) <- qc_codes$code
 
-sensor_codes <- qc_codes %>%
+sensor_codes_df <- qc_codes %>%
   filter(code_type == "sensor" | code_type == "general")
 
-comment_codes <- qc_codes %>%
+sensor_codes <- sensor_codes_df$code
+names(sensor_codes) <- sensor_codes_df$description
+
+comment_codes_df <- qc_codes %>%
   filter(code_type == "comment")
+
+comment_codes <- comment_codes_df$code
+names(comment_codes) <- comment_codes_df$description
 
 sensor_vector_l1 <- c("Turbidity" = "Turbidity",
                       "Conductivity" = "Conductivity_Temp",
@@ -98,3 +105,17 @@ jscode <-
   Shiny.onInputChange("GetScreenHeight",jsHeight);
 });
 '
+
+# Modules ####
+
+# ... Cancel selection action button ####
+cancelButtonUI <- function(id) {
+  actionButton(NS(id, "cancel"), label = "Cancel selection")
+}
+
+cancelButtonServer <- function(id) {
+  moduleServer(id, function(input, output, session) {
+    reactive(input$cancel)
+  })
+}
+
