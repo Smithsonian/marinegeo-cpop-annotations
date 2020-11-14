@@ -235,6 +235,10 @@ function(input, output, session) {
       mutate(!!input$parameter_qc := case_when(
         flag == "Missing Data" ~ parameter_mean(),
         T ~ .data[[input$parameter_qc]]
+      )) %>%
+      mutate(code = case_when(
+        is.na(code) ~ "No code applied",
+        T ~ code
       ))
   })
   
@@ -337,15 +341,16 @@ function(input, output, session) {
       
     } else {
       dat <- getPlotlySelection()
+      n_flags <- length(dat$status[dat$status == "Not evaluated"])
+      n_codes <- length(dat$code[dat$code == "No code applied"])
+      total <- nrow(dat)
       
       if("Not evaluated" %in% dat$status){
-        n <- length(dat$status[dat$status == "Not evaluated"])
-        total <- nrow(dat)
-        
+
         div(id = "quality_control_panel",
             div(id = "flag_div",
                 tags$h3("Approve or Revise Initial Flags"), 
-                tags$b(paste(n, "of", total, "selected observations have pending flags. ", sep = " ")),
+                tags$b(paste(n_flags, "of", total, "selected observations have pending flags. ", sep = " ")),
                 "Approve or reassign flags for these points. Once you select \"reassign\", you will select an updated flag.",
                 tags$br(), tags$br(),
                 
@@ -359,7 +364,7 @@ function(input, output, session) {
                           actionButton("accept_flags", "Accept flags", class = "btn-primary"), tags$br(), tags$br(),
                           actionButton("reject_flags", "Reassign flags", class = "btn-danger")
                       ),
-                      div(id = "rejection_options")
+                      div(id = "flag_revision_options")
                     )),
                   div(cancelButtonUI("mod1"))),
                 
@@ -367,6 +372,26 @@ function(input, output, session) {
                                     #reject_flags{color:white} #accept_flags{color:white}")))
                 
             ))
+      } else if("No code applied" %in% dat$code){
+        in_progress_qc$flags <- qc_output$flags
+        
+        assign_codes_ui(dat, n_codes, total)
+      
+      } else{
+        div(
+          tags$h3("Revise existing flags or codes"),
+          
+          "All selected points have approved flags and have been supplied codes. You can revise these existing flags or codes:",
+          
+          div(id = "all_revision_options",
+            actionButton("revise_flags_button", "Revise flags"),
+            actionButton("revise_codes_button", "Revise codes"), tags$br(), tags$br(),
+            cancelButtonUI("mod1"),
+            style = "padding:20px"
+          ),
+          div(id = "flag_revision_options")
+        )
+        
       }
     } 
   })
@@ -377,7 +402,7 @@ function(input, output, session) {
     
     dat <- getPlotlySelection()
     
-    n <- sum(is.na(dat$code))
+    n_codes <- length(dat$code[dat$code == "No code applied"])
     total <- nrow(dat)
     
     in_progress_qc$flags <- qc_output$flags %>%
@@ -390,32 +415,24 @@ function(input, output, session) {
     
     removeUI("#flag_div")
     insertUI("#quality_control_panel", where = "afterBegin", immediate = TRUE,
-             ui = assign_codes_ui(dat, n, total)
+             ui = assign_codes_ui(dat, n_codes, total)
     )
 
   })
 
-  ## ... Revise flags ####
+  ## ... Reject and revise flags ####
   # If a user accepts rejects flags, status and flag columns in flag dataframe are updated
   observeEvent(input$reject_flags, {
     
     removeClass("accept_flags", class = "btn-primary")
     removeClass("reject_flags", class = "btn-danger")
 
-    insertUI("#rejection_options", where = "afterBegin", immediate = TRUE,
-             ui = div(
-               selectInput("revise_flags", "Reject and update flags", 
-                           choices = unname(qc_flags)),
-               actionButton("confirm_revisions", "Confirm revised flags")
-             ))
-    
-    addClass("confirm_revisions", class = "btn-primary")
-             
+    add_revise_flags_UI()
   })
   
   observeEvent(input$confirm_revisions,{
     dat <- getPlotlySelection()
-    n <- sum(is.na(dat$code))
+    n_codes <- length(dat$code[dat$code == "No code applied"])
     total <- nrow(dat)
     
     in_progress_qc$flags <- qc_output$flags %>%
@@ -433,7 +450,7 @@ function(input, output, session) {
     
     removeUI("#flag_div")
     insertUI("#quality_control_panel", where = "afterBegin", immediate = TRUE,
-             ui = assign_codes_ui(dat, n, total))
+             ui = assign_codes_ui(dat, n_codes, total))
     
   })
   
@@ -461,10 +478,17 @@ function(input, output, session) {
     runjs("Shiny.setInputValue('plotly_selected-A', null);")    
   })
   
+  ## ... revise flags or codes ####
+  observeEvent(input$revise_flags_button, {
+    removeUI("#flag_div")
+    
+    add_revise_flags_UI()
+  })
+  
+  ## ... cancel selection logic ####
+  
   button1 <- cancelButtonServer("mod1")
   button2 <- cancelButtonServer("mod2")
-  #cancel_flag <- cancelSelectionsServer("flag")
-  ## ... cancel selection logic ####
   
   observeEvent(button1(), {
     runjs("Shiny.setInputValue('plotly_selected-A', null);")    
@@ -608,5 +632,16 @@ function(input, output, session) {
                             div(cancelButtonUI("mod2"))),
                           tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}
                                                 #confirm_codes{color:white}")))
-  )}
+    )}
+  
+  add_revise_flags_UI <- function(){
+    insertUI("#flag_revision_options", where = "afterBegin", immediate = TRUE,
+             ui = div(
+               selectInput("revise_flags", "Select updated flag", 
+                           choices = unname(qc_flags)),
+               actionButton("confirm_revisions", "Confirm revised flags")
+             ))
+    
+    addClass("confirm_revisions", class = "btn-primary")
+  }
 }

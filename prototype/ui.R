@@ -72,10 +72,6 @@ body <- dashboardBody(
     ),
     tabItem("annotate_data",
             fluidRow(
-              # column(width = 2,
-              #        box(width = NULL,
-              #            uiOutput("quality_control_summary"))),
-              
               column(width = 12,
                      box(width = NULL,
                          title = NULL,
@@ -85,7 +81,6 @@ body <- dashboardBody(
                          uiOutput("quality_control_box")
                      )
               )
-              
             ),
             
             fluidRow(
@@ -99,7 +94,7 @@ body <- dashboardBody(
                          splitLayout(
                            style = "border: 1px solid silver;",
                            cellWidths = "25%",
-                           cellArgs = list(style = "padding: 30px;"),
+                           cellArgs = list(style = "padding: 20px;"),
                            selectInput("sensor_qc", "Select a sensor",
                                        c("", names(sensor_vector_l1)),
                                        multiple = FALSE),
