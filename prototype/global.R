@@ -105,17 +105,3 @@ jscode <-
   Shiny.onInputChange("GetScreenHeight",jsHeight);
 });
 '
-
-# Modules ####
-
-# ... Cancel selection action button ####
-cancelButtonUI <- function(id) {
-  actionButton(NS(id, "cancel"), label = "Cancel selection")
-}
-
-cancelButtonServer <- function(id) {
-  moduleServer(id, function(input, output, session) {
-    reactive(input$cancel)
-  })
-}
-

@@ -14,6 +14,31 @@ library(DT)
 library(plotly)
 library(shinyjs)
 
+qc_codes <- read_csv("./data/qc_technician_codes.csv") %>%
+  mutate(select_inputs = paste(code, description, sep=" - ")) %>%
+  filter(category == "water quality") %>%
+  mutate(code_type = case_when(
+    substr(code, 1, 1) == "C" ~ "comment",
+    substr(code, 1, 1) == "S" ~ "sensor",
+    substr(code, 1, 1) == "G" ~ "general",
+    T ~ NA_character_
+  ))
+
+qc_code_descriptions <- qc_codes$description
+names(qc_code_descriptions) <- qc_codes$code
+
+sensor_codes_df <- qc_codes %>%
+  filter(code_type == "sensor" | code_type == "general")
+
+sensor_codes <- sensor_codes_df$code
+names(sensor_codes) <- sensor_codes_df$description
+
+comment_codes_df <- qc_codes %>%
+  filter(code_type == "comment")
+
+comment_codes <- comment_codes_df$code
+names(comment_codes) <- comment_codes_df$description
+
 sensor_vector_l1 <- c("Turbidity" = "Turbidity",
                       "Conductivity" = "Conductivity_Temp",
                       "Optical Dissolved Oxygen" = "Optical_DO",
@@ -147,7 +172,8 @@ server <- function(input, output, session) {
   current_site <- reactiveVal(NA) # Site for data currently loaded
   current_date_range <- reactiveVal(NA) # Date range for data currently loaded
   in_progress_qc <- reactiveValues() # Holds decision and outcomes of qc process until user cancels or confirms all decisions
-  sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
+  #sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
+  sensor_flag <- reactiveVal("Conductivity_Temp")
   reset_plot_status <- reactiveVal(0)
   
   # Reactives for plotting ####
@@ -157,7 +183,7 @@ server <- function(input, output, session) {
   code_timestamps <- reactive({
     # Determine if observations for current sensor have been annotated
     qc_output$codes %>%
-      filter(sensor == "Conductivity_Temp") %>%
+      filter(sensor == sensor_flag()) %>%
       group_by(timestamp) %>%
       summarize(code = paste(code, collapse = ", "))
   })
@@ -166,7 +192,7 @@ server <- function(input, output, session) {
   # There should only be one flag per timestamp 
   flag_timestamps <- reactive({
     qc_output$flags %>%
-      filter(sensor == "Conductivity_Temp") %>%
+      filter(sensor == sensor_flag()) %>%
       select(-ID, -sensor)
   })
   
@@ -272,15 +298,12 @@ server <- function(input, output, session) {
           splitLayout(
             cellWidths = "50%",
             div(
-              splitLayout(
-                #cellWidths = "25%",
-                #cellArgs = list(style = "padding: 30px;"),
-                div(id = "initial_flag_decision",
-                    actionButton("accept_flags", "Accept flags", class = "btn-primary"), tags$br(), tags$br(),
-                    actionButton("reject_flags", "Reassign flags", class = "btn-danger")
-                ),
-                div(id = "flag_revision_options")
-              )),
+              actionButton("accept_flags", "Accept flags", class = "btn-primary"), 
+              actionButton("reject_flags", "Reassign flags", class = "btn-danger"),
+              
+              tags$br(), tags$br(),
+              actionButton("cancel_selection", "Cancel selection")
+            ),
             div()),
           
           tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}
@@ -289,10 +312,22 @@ server <- function(input, output, session) {
       )
     } else if (quality_control_stage() == "revise flags"){
       div(
-        selectInput("revise_flags", "Select updated flag", 
-                    choices = unname(qc_flags)),
-        actionButton("confirm_revisions", "Confirm revised flags")
-      )
+        tags$h3("Revise Quality Control Flag"),
+        
+        splitLayout(
+          cellWidths = "50%",
+          div(
+            selectInput("revise_flags", "Select updated flag", 
+                        choices = unname(qc_flags)),
+            actionButton("confirm_revisions", "Confirm revised flags", class = "btn-primary"), 
+            actionButton("cancel_selection", "Cancel selection")
+          ),
+          div()),
+        
+        tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}
+                                    #confirm_revisions{color:white}")))
+        
+        )
         
     } else if(quality_control_stage() == "revise codes"){
       div(id = "revise_codes_div",
@@ -306,11 +341,14 @@ server <- function(input, output, session) {
               div(
                 selectInput("sensor_code_selection", "Select a general or sensor code",
                             choices = c("", sensor_codes)),
-                actionButton("confirm_codes", "Confirm code selections", class = "btn-primary")),
+                actionButton("confirm_codes", "Confirm code selections", class = "btn-primary"),
+                actionButton("skip_revising_codes", "Do not assign a code"),
+                actionButton("cancel_selection", "Cancel selection")),
               selectInput("comment_code_selection", "Select one or more comment codes",
                           choices = comment_codes, multiple = TRUE)
             )),
-            div(actionButton("skip_revising_codes", "Do not assign a code", class = "btn-primary"))),
+            div()),
+          
           tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}
                                                 #confirm_codes{color:white}")))
       )
@@ -321,11 +359,15 @@ server <- function(input, output, session) {
           "If you revise flags, you will be given the option to revise the codes.",
           tags$br(), tags$br(),
           
-          div(id = "all_revision_options",
-              actionButton("revise_flags_button", "Revise flags"),
-              actionButton("revise_codes_button", "Revise codes"),
-              style = "padding:20px"
-          ))
+          splitLayout(
+            cellWidths = "50%",
+            splitLayout(
+              div(
+                actionButton("revise_flags_button", "Revise flags"),
+                actionButton("revise_codes_button", "Revise codes"), tags$br(), tags$br(),
+                actionButton("cancel_selection", "Cancel selection"))
+            ),
+            div()))
     }
   })
   
@@ -352,7 +394,7 @@ server <- function(input, output, session) {
     in_progress_qc$flags <- qc_output$flags %>%
       mutate(status = case_when(
         timestamp %in% selection$df$timestamp &
-          sensor == "Conductivity_Temp" &
+          sensor == sensor_flag() &
           status == "Not evaluated" ~ "Approved",
         T ~ status
       ))
@@ -372,13 +414,13 @@ server <- function(input, output, session) {
     in_progress_qc$flags <- qc_output$flags %>%
       mutate(status = case_when(
         timestamp %in% selection$df$timestamp &
-          sensor == "Conductivity_Temp" &
+          sensor == sensor_flag() &
           status == "Not evaluated" ~ "Revised",
         T ~ status
       ),
       flag = case_when(
         timestamp %in% selection$df$timestamp &
-          sensor == "Conductivity_Temp" ~ input$revise_flags,
+          sensor == sensor_flag() ~ input$revise_flags,
         T ~ flag
       ))
 
@@ -397,13 +439,13 @@ server <- function(input, output, session) {
     for(selected_code in selected_codes){
       revised_codes <- selection$df %>%
         select(timestamp) %>%
-        mutate(sensor = "Conductivity_Temp",
+        mutate(sensor = sensor_flag(),
                code = selected_code) %>%
         bind_rows(revised_codes)
     }
     
     qc_output$codes <- qc_output$codes %>%
-      filter(!(timestamp %in% selection$df$timestamp & sensor == "Conductivity_Temp")) %>%
+      filter(!(timestamp %in% selection$df$timestamp & sensor == sensor_flag())) %>%
       bind_rows(revised_codes)
     
     runjs("Shiny.setInputValue('plotly_selected-A', null);")    
@@ -434,6 +476,15 @@ server <- function(input, output, session) {
     
   })
   
+  observeEvent(input$cancel_selection, {
+    
+    runjs("Shiny.setInputValue('plotly_selected-A', null);")  
+    
+    reset_plot_status(
+      reset_plot_status() + 1
+    )
+    
+  })
   
   output$quality_control_box <- renderUI({
     getQualityControlUI()
