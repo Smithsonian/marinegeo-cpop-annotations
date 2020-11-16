@@ -73,19 +73,19 @@ function(input, output, session) {
   })  
   
 
-  # output$site_info_box <- renderValueBox({
-  #   valueBox(
-  #     current_site(), "Site", icon = icon("broadcast-tower"),
-  #     color = "purple"
-  #   )
-  # })
-  
-  # output$date_range_box <- renderValueBox({
-  #   valueBox(
-  #     current_date_range(), "Date Range", icon = icon("calendar-alt"),
-  #     color = "teal"
-  #   )
-  # })
+  output$site_info_box <- renderValueBox({
+    valueBox(
+      current_site(), "Site", icon = icon("broadcast-tower"),
+      color = "purple"
+    )
+  })
+
+  output$date_range_box <- renderValueBox({
+    valueBox(
+      current_date_range(), "Date Range", icon = icon("calendar-alt"),
+      color = "teal"
+    )
+  })
   
   # output$annotation_progress_box <- renderValueBox({
   #   valueBox(

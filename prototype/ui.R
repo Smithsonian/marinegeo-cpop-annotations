@@ -19,14 +19,16 @@ sidebar <- dashboardSidebar(
 )
 
 body <- dashboardBody(
-  # fluidRow(
-  #   valueBoxOutput("site_info_box", width = 3),
-  #   valueBoxOutput("date_range_box", width = 6),
-  #   valueBoxOutput("annotation_progress_box", width = 3)
-  # ),
   useShinyjs(),
   tabItems(
     tabItem("load_data",
+            
+            fluidRow(
+              valueBoxOutput("site_info_box", width = 3),
+              valueBoxOutput("date_range_box", width = 6)
+              #valueBoxOutput("annotation_progress_box", width = 3)
+            ),
+            
             fluidRow(
               column(width = 3,
                      box(width = NULL, 
