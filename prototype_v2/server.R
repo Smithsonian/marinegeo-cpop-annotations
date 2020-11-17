@@ -25,6 +25,7 @@ function(input, output, session) {
   in_progress_qc <- reactiveValues() # Holds decision and outcomes of qc process until user cancels or confirms all decisions
   sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
   reset_plot_status <- reactiveVal(0)
+  
   ## Track QC progress info box ####
   current_qc_progress <- reactive({
     "NA"
@@ -151,20 +152,29 @@ function(input, output, session) {
         mutate(timestamp = ymd_hms(timestamp)) 
       
       # Check if current filename has previous annotations and read them in
-      data_identifier <- gsub("L1-data.csv", "", current_file())
+      data_identifier <- gsub("_L1-data.csv", "", current_file())
       
+      ## ... Load L2 flags/codes ####
       # If L2 annotations exist, read them in 
       # Otherwise read in L1 annotation
       if(data_identifier %in% annotation_directory$identifier){
-        annotation_filename <- annotation_directory %>%
-          filter(identifier == data_identifier) %>%
-          pull(name)
         
-        qc_output$codes <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/",
-                                               annotation_filename)) %>%
+        # First check for codes
+        if(any(grepl("L2-codes.csv", annotation_directory$name))){
+          codes_filename <- gsub("L1-data", "L2-codes", current_file())
+          
+          qc_output$codes <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_codes/",
+                                                  codes_filename)) %>%
+            mutate_all(as.character) %>%
+            mutate(timestamp = ymd_hms(timestamp))
+        }
+        flags_filename <- gsub("L1-data", "L2-flags", current_file())
+        
+        qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_flags/",
+                                                flags_filename)) %>%
           mutate_all(as.character) %>%
           mutate(timestamp = ymd_hms(timestamp))
-        
+
       } else {
         # Read in the L1 flags
         qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/", 
@@ -284,9 +294,7 @@ function(input, output, session) {
   })
   
   ## Apply QC logic ####
-  
-  ## Apply QC logic ####
-  
+
   # Reactive used to determine which points are in selection
   getPlotlySelection <- reactive({
     req(event_data("plotly_selected"))
@@ -593,29 +601,32 @@ function(input, output, session) {
   ## Submit annotations ####
   observeEvent(input$submit_codes, {
 
-    filename <- paste(gsub(".csv", "", current_file()),
-                      "L2",
-                      #format(Sys.time(), "%Y%m%d-%H%M%OS"),
-                      sep = "-")
-
+    flags_filename <- gsub("L1-data", "L2-flags", current_file())
+    codes_filename <- gsub("L1-data", "L2-codes", current_file())
+    
     setwd(tempdir())
 
-    #if(nrow(qc_output$codes) > 0){
-
-    write_csv(qc_output$codes,
-              paste0(filename, ".csv"))
-
-    drop_upload(paste0(filename, ".csv"),
-                path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/")
-
+    # Upload flags even if no changes made
+    write_csv(qc_output$flags, flags_filename)
+    
+    drop_upload(flags_filename,
+                path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_flags")
+    
+    if(nrow(qc_output$codes) > 0){
+      
+      write_csv(qc_output$codes, codes_filename)
+      
+      drop_upload(codes_filename,
+                  path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_codes")
+      
+    }
+    
     showModal(modalDialog(
       title = "Annotations saved",
       div("Your annotations have been saved."),
 
       easyClose = TRUE
     ))
-
-    #}
 
     setwd(original_wd)
 
