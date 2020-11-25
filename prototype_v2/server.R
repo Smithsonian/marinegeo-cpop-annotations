@@ -6,13 +6,13 @@ function(input, output, session) {
   
   # Empty dataframes will hold points selected for level 1 QC flags and level 2 QC flags and codes
   qc_output <- reactiveValues(flags = tibble(ID = as.character(NA),
-                                             timestamp = as.POSIXct(NA),
+                                             #timestamp = as.POSIXct(NA),
                                              sensor = as.character(NA),
                                              status = as.character(NA),
                                              flag = as.character(NA),
                                              .rows = 0),
                               codes = tibble(ID = as.character(NA),
-                                             timestamp = as.POSIXct(NA), 
+                                             #timestamp = as.POSIXct(NA), 
                                              sensor = as.character(NA),
                                              code = as.character(NA),
                                              .rows = 0))
@@ -165,25 +165,38 @@ function(input, output, session) {
           
           qc_output$codes <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_codes/",
                                                   codes_filename)) %>%
-            mutate_all(as.character) %>%
-            mutate(timestamp = ymd_hms(timestamp))
+            mutate_all(as.character)# %>%
+            #mutate(timestamp = ymd_hms(timestamp))
         }
         flags_filename <- gsub("L1-data", "L2-flags", current_file())
         
         qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_flags/",
                                                 flags_filename)) %>%
           mutate_all(as.character) %>%
-          mutate(timestamp = ymd_hms(timestamp))
-
+          mutate(status = case_when(
+            status == "-1" ~ "Not evaluated",
+            status == "0" ~ "Revised", 
+            status == "1" ~ "Approved",
+            T ~ "-2"
+          ),
+          flag = case_when(
+            flag == "-5" ~ "Outside high range",
+            flag == "-4" ~ "Outside low range",
+            flag == "-3" ~ "Data rejected due to QAQC",
+            flag == "-2" ~ "Missing Data",
+            flag == "-1" ~ "Optional parameter, not collected",
+            flag == "0" ~ "Passed L1 QC",
+            flag == "1" ~ "Suspect Data",
+            flag == "2" ~ "Reserved for Future Use",
+            T ~ "Other Flags"
+          ))
+        
       } else {
         # Read in the L1 flags
         qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/", 
                                                    gsub("-data", "-flags", selected_file))) %>%
           mutate_all(as.character) %>%
-          rename(flag = code_num) %>%
-          select(timestamp, ID, sensor, flag) %>%
-          mutate(timestamp = ymd_hms(timestamp),
-                 status = "Not evaluated", # Whether L1 flag has been accepted, rejected, or needs to be evaluated
+          mutate(status = "Not evaluated", # Whether L1 flag has been accepted, rejected, or needs to be evaluated
                  flag = case_when(
                    flag == "-5" ~ "Outside high range",
                    flag == "-4" ~ "Outside low range",
@@ -223,7 +236,7 @@ function(input, output, session) {
     # Determine if observations for current sensor have been annotated
     qc_output$codes %>%
       filter(sensor == sensor_flag()) %>%
-      group_by(timestamp) %>%
+      group_by(ID) %>%
       summarize(code = paste(code, collapse = ", "))
   })
   
@@ -232,15 +245,15 @@ function(input, output, session) {
   flag_timestamps <- reactive({
     qc_output$flags %>%
       filter(sensor == sensor_flag()) %>%
-      select(-ID, -sensor)
+      select(-sensor)
   })
   
   subset_data <- reactive({
     
     current_data$df %>%
-      select(timestamp, all_of(input$parameter_qc)) %>%
-      merge(flag_timestamps(), by="timestamp", all.x=TRUE) %>%
-      merge(code_timestamps(), by="timestamp", all.x=TRUE) %>%
+      select(timestamp, ID, all_of(input$parameter_qc)) %>%
+      merge(flag_timestamps(), by="ID", all.x=TRUE) %>%
+      merge(code_timestamps(), by="ID", all.x=TRUE) %>%
       # Provide values to missing data
       mutate(!!input$parameter_qc := case_when(
         flag == "Missing Data" ~ parameter_mean(),
@@ -268,7 +281,7 @@ function(input, output, session) {
     
     plot_ly(subset_data(), x = ~timestamp, y = ~get(input$parameter_qc), 
             color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively 
-            key=~timestamp, type = "scatter") %>%
+            key=~ID, type = "scatter") %>%
       rangeslider(type = "date"
                   #borderwidth = 1,
                   #thickness = .15) %>%
@@ -302,11 +315,12 @@ function(input, output, session) {
     dat <- subset_data()
     
     brush_subset <- event_data("plotly_selected") %>%
-      mutate(key = ymd_hms(key))
+      mutate(key = as.character(key))
     
     # Return subset of data within selection
     dat %>%
-      filter(timestamp %in% brush_subset$key)
+      mutate(ID = as.character(ID)) %>%
+      filter(ID %in% brush_subset$key) 
   })
   
   ## ... QC UI box ####
@@ -441,7 +455,7 @@ function(input, output, session) {
     
     in_progress_qc$flags <- qc_output$flags %>%
       mutate(status = case_when(
-        timestamp %in% selection$df$timestamp &
+        ID %in% selection$df$ID &
           sensor == sensor_flag() &
           status == "Not evaluated" ~ "Approved",
         T ~ status
@@ -461,13 +475,13 @@ function(input, output, session) {
   observeEvent(input$confirm_revisions,{
     in_progress_qc$flags <- qc_output$flags %>%
       mutate(status = case_when(
-        timestamp %in% selection$df$timestamp &
+        ID %in% selection$df$ID &
           sensor == sensor_flag() &
           status == "Not evaluated" ~ "Revised",
         T ~ status
       ),
       flag = case_when(
-        timestamp %in% selection$df$timestamp &
+        ID %in% selection$df$ID &
           sensor == sensor_flag() ~ input$revise_flags,
         T ~ flag
       ))
@@ -486,14 +500,14 @@ function(input, output, session) {
     revised_codes <- data.frame()
     for(selected_code in selected_codes){
       revised_codes <- selection$df %>%
-        select(timestamp) %>%
+        select(ID) %>%
         mutate(sensor = sensor_flag(),
                code = selected_code) %>%
         bind_rows(revised_codes)
     }
     
     qc_output$codes <- qc_output$codes %>%
-      filter(!(timestamp %in% selection$df$timestamp & sensor == sensor_flag())) %>%
+      filter(!(ID %in% selection$df$ID & sensor == sensor_flag())) %>%
       bind_rows(revised_codes)
     
     runjs("Shiny.setInputValue('plotly_selected-A', null);")    
@@ -552,12 +566,12 @@ function(input, output, session) {
     brush_subset <- event_data("plotly_selected")
     
     if (!is.null(brush_subset)){
-      brush_subset <- brush_subset %>%
-        mutate(key = ymd_hms(key))
+      # brush_subset <- brush_subset %>%
+      #   mutate(key = ymd_hms(key))
       
       datatable(
         data_subset %>%
-          filter(timestamp %in% brush_subset$key)
+          filter(ID %in% brush_subset$key)
       )
     } else {
       datatable(data_subset)
@@ -569,11 +583,11 @@ function(input, output, session) {
     
     if(nrow(qc_output$codes) > 0){
       summary <- qc_output$codes %>%
-        mutate(timestamp = ymd_hms(timestamp)) %>%
+        #mutate(timestamp = ymd_hms(timestamp)) %>%
         group_by(sensor, code) %>%
-        summarize(number_points_flagged = n(),
-                  from = min(timestamp),
-                  to = max(timestamp))
+        summarize(number_points_flagged = n())#,
+                  #from = min(timestamp),
+                  #to = max(timestamp))
       
       datatable(summary)
     }
@@ -606,8 +620,27 @@ function(input, output, session) {
     
     setwd(tempdir())
 
+    output_flags <- qc_output$flags %>%
+      mutate(flag = case_when(
+        flag == "Outside high range" ~ "-5",
+        flag == "Outside low range" ~ "-4",
+        flag == "Data rejected due to QAQC" ~ "-3",
+        flag == "Missing Data" ~ "-2",
+        flag == "Optional parameter, not collected" ~ "-1",
+        flag == "Passed L1 QC" ~ "0",
+        flag == "Suspect Data" ~ "1",
+        flag == "Reserved for Future Use" ~ "2",
+        T ~ "3"
+      )) %>%
+      mutate(status = case_when(
+        status == "Not evaluated" ~ "-1",
+        status == "Revised" ~ "0",
+        status == "Approved" ~ "1",
+        T ~ "-2"
+      ))
+    
     # Upload flags even if no changes made
-    write_csv(qc_output$flags, flags_filename)
+    write_csv(output_flags, flags_filename)
     
     drop_upload(flags_filename,
                 path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_flags")

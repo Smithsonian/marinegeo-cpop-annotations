@@ -57,15 +57,15 @@ comment_codes_df <- qc_codes %>%
 comment_codes <- comment_codes_df$code
 names(comment_codes) <- comment_codes_df$description
 
-sensor_vector_l1 <- c("Turbidity" = "Turbidity",
-                      "Conductivity" = "Conductivity_Temp",
-                      "Optical Dissolved Oxygen" = "Optical_DO",
-                      "Depth" = "Depth",
-                      "Fluorescent Dissolved Organic Matter" = "fDOM",
-                      "Wiper" = "Wiper",
-                      "pH" = "pH",
-                      "EXO2 Sonde" = "EXO2_Sonde",
-                      "Total Algae" = "Total_Algae_BGA_PE")
+sensor_vector_l1 <- c("Turbidity" = "tu",
+                      "Conductivity" = "ct",
+                      "Optical Dissolved Oxygen" = "op",
+                      "Depth" = "de",
+                      "Fluorescent Dissolved Organic Matter" = "fd",
+                      "Wiper" = "wi",
+                      "pH" = "ph",
+                      "EXO2 Sonde" = "ex",
+                      "Total Algae" = "ta")
 
 qc_flags <- c("-5" = "Outside high range",
               "-4" = "Outside low range",
