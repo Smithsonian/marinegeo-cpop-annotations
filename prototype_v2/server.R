@@ -350,6 +350,19 @@ function(input, output, session) {
           tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
         )
       )
+    } else if(!is.data.frame(event_data("plotly_selected"))){
+      div(
+        tags$head(
+          tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
+        ),
+        tags$h3("Quality Control Instructions"), tags$br(),
+        tags$ol(
+          tags$li("Select a sensor and parameter below to plot data"),
+          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."), 
+          tags$li("Flags have been algorithmically assigned to each point and must be either accepted or rejected. If they are rejected, you must provide an updated flag."), 
+          tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
+        )
+      )
     } else if(quality_control_stage() == "accept flags"){
       div(id = "accept_flag_div",
           tags$h3("Approve or Revise Initial Flags"), 
@@ -435,18 +448,21 @@ function(input, output, session) {
   
   # Triggers start of QC workflow when a selection event occurs
   observeEvent(!is.null(event_data("plotly_selected")), {
-    selection$df <- getPlotlySelection()
-    n_flags_unapproved(length(selection$df$status[selection$df$status == "Not evaluated"]))
-    n_codes_unassigned(length(selection$df$code[selection$df$code == "No code applied"]))
-    total_points_in_selection(nrow(selection$df))
     
-    if("Not evaluated" %in% selection$df$status){
-      quality_control_stage("accept flags")
-    } else if("No code applied" %in% selection$df$code){
-      quality_control_stage("revise codes")
-    } else{
-      quality_control_stage("update annotations")
-    }  
+    if(is.data.frame(event_data("plotly_selected"))){
+      selection$df <- getPlotlySelection()
+      n_flags_unapproved(length(selection$df$status[selection$df$status == "Not evaluated"]))
+      n_codes_unassigned(length(selection$df$code[selection$df$code == "No code applied"]))
+      total_points_in_selection(nrow(selection$df))
+      
+      if("Not evaluated" %in% selection$df$status){
+        quality_control_stage("accept flags")
+      } else if("No code applied" %in% selection$df$code){
+        quality_control_stage("revise codes")
+      } else{
+        quality_control_stage("update annotations")
+      }  
+    }
   })
   
   ## ... Accept flags ####
