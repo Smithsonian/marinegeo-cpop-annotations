@@ -142,7 +142,7 @@ function(input, output, session) {
       current_file(selected_file)
       
       # Read in CSV given filepath
-      current_data$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/", 
+      current_data$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/L1_DATA_FLAGS/", 
                                               selected_file))
       
       # Convert timestamp to POSIXct
@@ -193,7 +193,7 @@ function(input, output, session) {
         
       } else {
         # Read in the L1 flags
-        qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/", 
+        qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/L1_DATA_FLAGS/", 
                                                    gsub("-data", "-flags", selected_file))) %>%
           mutate_all(as.character) %>%
           mutate(status = "Not evaluated", # Whether L1 flag has been accepted, rejected, or needs to be evaluated

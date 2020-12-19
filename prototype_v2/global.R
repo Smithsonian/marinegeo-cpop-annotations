@@ -19,7 +19,7 @@ library(shinyjs)
 drop_auth(rdstoken = "./droptoken.rds")
 
 # Get filenames to populate UI for now
-bundled_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/QAQC_dir/") %>%
+bundled_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/L1_DATA_FLAGS/") %>%
   pull(name)
 
 key <- as_tibble(bundled_directory) %>%
