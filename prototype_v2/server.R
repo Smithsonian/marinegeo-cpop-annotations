@@ -26,6 +26,9 @@ function(input, output, session) {
   sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
   reset_plot_status <- reactiveVal(0)
   
+  current_min_date <- reactiveVal(NULL)
+  current_max_date <- reactiveVal(NULL)
+  
   ## Track QC progress info box ####
   current_qc_progress <- reactive({
     "NA"
@@ -105,6 +108,11 @@ function(input, output, session) {
   output$parameter_qc <- renderUI({
     selectInput("parameter_qc", "Select a parameter to QC",
                 sensor_parameters(), multiple = FALSE)
+  })
+  
+  output$start_date <- renderUI({
+    dateInput("start_date", label = "Update start date", 
+              value = current_min_date(), min = current_min_date(), max = current_max_date())
   })
   
   # NA values are currently getting plotted as the mean of the selected parameter
@@ -217,6 +225,10 @@ function(input, output, session) {
                                         '%Y-%m-%d'),
                                sep = " to "))
       
+      # Set min and max for start date input
+      current_min_date(min(current_data$df$timestamp))
+      current_max_date(max(current_data$df$timestamp))
+      
     } else {
       showModal(modalDialog(
         title = "No Data Selected", 
@@ -250,7 +262,7 @@ function(input, output, session) {
   
   subset_data <- reactive({
     
-    current_data$df %>%
+    df <- current_data$df %>%
       select(timestamp, ID, all_of(input$parameter_qc)) %>%
       merge(flag_timestamps(), by="ID", all.x=TRUE) %>%
       merge(code_timestamps(), by="ID", all.x=TRUE) %>%
@@ -263,11 +275,44 @@ function(input, output, session) {
         is.na(code) ~ "No code applied",
         T ~ code
       ))
+    
+    if(input$view_mode == "Flags that require review"){
+      df <- df %>%
+        filter(status == "Not evaluated")
+      
+    } else if(input$view_mode == "Only accepted flags"){
+      df <- df %>%
+        filter(status == "Approved")
+      
+    } else if(input$view_mode == "Only rejected flags"){
+      df <- df %>%
+        filter(status == "Revised")
+      
+    } else if(input$view_mode == "Points that require codes"){
+      df <- df %>%
+        filter(code == "No code applied")
+    } 
+    
+    return(df)
+    
   })
   
   # Reformats label_mode input for plotly color argument (ex: Codes to code)
   label_type <- reactive({
     gsub("s", "", tolower(input$label_mode))
+  })
+  
+  date_range_max <- reactive({
+    
+    if(input$date_interval == "All data"){
+      return(current_max_date())
+    } else if(input$date_interval == "1 day"){
+      return(input$start_date + hours(24))
+    } else if(input$date_interval == "1 week"){
+      return(input$start_date + weeks(1))
+    } else if(input$date_interval == "1 month"){
+      return(input$start_date + months(1))
+    }
   })
   
   ## Plots ####
@@ -282,24 +327,26 @@ function(input, output, session) {
     plot_ly(subset_data(), x = ~timestamp, y = ~get(input$parameter_qc), 
             color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively 
             key=~ID, type = "scatter") %>%
-      rangeslider(type = "date"
-                  #borderwidth = 1,
-                  #thickness = .15) %>%
-                  #yaxis = list(
-                  #range = c(40,60)
-      ) %>%
-      layout(legend = list(orientation = 'h', # https://plotly.com/python/reference/layout/#layout-legend
-                           y = -.6),
+      # rangeslider(type = "date"
+      #             #borderwidth = 1,
+      #             #thickness = .15) %>%
+      #             #yaxis = list(
+      #             #range = c(40,60)
+      # ) %>%
+      layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
+                           #y = -.6),
              yaxis = list(title = input$parameter_qc),
              xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
-                          rangeselector = list(
-                            buttons = list(
-                              list(count = 24, label = "1 day", step = "hour", stepmode = "todate"),
-                              list(count = 3, label = "3 days", step = "day", stepmode = "todate"),
-                              list(count = 7, label = "1 wk", step = "day", stepmode = "todate"),
-                              list(count = 1, label = "1 mo", step = "month", stepmode = "todate")
-                            )
-                          )),
+                          range = c(input$start_date, as.Date(date_range_max()))
+                          # rangeselector = list(
+                          #   buttons = list(
+                          #     list(count = 24, label = "1 day", step = "hour", stepmode = "todate"),
+                          #     list(count = 3, label = "3 days", step = "day", stepmode = "todate"),
+                          #     list(count = 7, label = "1 wk", step = "day", stepmode = "todate"),
+                          #     list(count = 1, label = "1 mo", step = "month", stepmode = "todate")
+                          #   )
+                          # )
+                          ),
              # rangeslider = list(bgcolor = '#000',
              #                    type = "date")),
              showlegend = TRUE) %>%

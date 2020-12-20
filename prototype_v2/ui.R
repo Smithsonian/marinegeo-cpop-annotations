@@ -95,14 +95,16 @@ body <- dashboardBody(
 
                          splitLayout(
                            style = "border: 1px solid silver;",
-                           cellWidths = "25%",
+                           #cellWidths = "25%",
                            cellArgs = list(style = "padding: 20px;"),
-                           selectInput("sensor_qc", "Select a sensor",
-                                       c("", names(sensor_vector_l1)),
-                                       multiple = FALSE),
                            
-                           # conditional dropdown for sensor parameters at selected site and sensor
-                           uiOutput("parameter_qc"),
+                           div(
+                             selectInput("sensor_qc", "Select a sensor",
+                                         c("", names(sensor_vector_l1)), multiple = FALSE),
+                             
+                             # conditional dropdown for sensor parameters at selected site and sensor
+                             uiOutput("parameter_qc")
+                           ),
                            
                            radioButtons("label_mode", "Plot labels",
                                         choices = c("Flags",
@@ -113,9 +115,16 @@ body <- dashboardBody(
                                                    "Flags that require review",
                                                    "Only accepted flags",
                                                    "Only rejected flags",
-                                                   "Points that require codes",
-                                                   "Highest level annotations"))
+                                                   "Points that require codes")),
+                           
+                           div(
+                             uiOutput("start_date"),
+                             #dateInput("start_date", label = "Update start date"),
+                             selectInput("date_interval", label = "Select a date interval", 
+                                         choices = c("All data", "1 day", "1 week", "1 month"))
+                           )
                          ),
+                         
                          tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
                          
                          plotlyOutput("plot_qc")
