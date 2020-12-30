@@ -9,9 +9,11 @@ header <- dashboardHeader(
 sidebar <- dashboardSidebar(
   sidebarMenu(
     id = "tabs",
+    menuItem("About", tabName = "about", icon = icon("bullhorn")),
+    menuItem("Submit data", tabName = "submit_data", icon = icon("file-upload")),
     menuItem("Load data", tabName = "load_data", icon = icon("database")),
     menuItem("Annotate data", tabName = "annotate_data", icon = icon("chart-line")),
-    menuItem("Review tabular data", tabName = "tabular_data", icon = icon("table")),
+    menuItem("View tabular data", tabName = "tabular_data", icon = icon("table")),
     menuItem("Review annotations", tabName = "review", icon = icon("clipboard-check")),
     
     uiOutput("data_info_box")
@@ -21,6 +23,32 @@ sidebar <- dashboardSidebar(
 body <- dashboardBody(
   useShinyjs(),
   tabItems(
+    tabItem("about",
+            
+            box(
+              tags$h3("MarineGEO CPOP Annotation Portal"),
+              
+              introduction_text, tags$br(), tags$br(),
+              
+              "To begin, either submit new data or load previously submitted data. Do not re-submit data.", 
+              tags$br(), tags$br(),
+              
+              splitLayout(
+                actionButton("initiate_submission", 
+                             div(div(id = "icon", icon("angle-double-up")),
+                                 tags$h3("Submit data")), 
+                             style = "padding:20px"),
+                actionButton("initiate_load", 
+                             div(div(id = "icon", icon("truck-loading")),
+                                 tags$h3("Load data")), 
+                             style = "padding:20px; font-size: large"),
+                cellArgs = list(style = "text-align:center"),
+                tags$style("#icon {font-size: xx-large}")
+              )
+            )
+    ),
+    
+    tabItem("submit_data"),
     tabItem("load_data",
             
             fluidRow(

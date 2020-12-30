@@ -29,6 +29,15 @@ function(input, output, session) {
   current_min_date <- reactiveVal(NULL)
   current_max_date <- reactiveVal(NULL)
   
+  ## Welcome tab logic ####
+  observeEvent(input$initiate_submission, {
+    updateTabItems(session, "tabs", "submit_data")
+  })
+  
+  observeEvent(input$initiate_load, {
+    updateTabItems(session, "tabs", "load_data")
+  })
+  
   ## Track QC progress info box ####
   current_qc_progress <- reactive({
     "NA"

@@ -18,6 +18,9 @@ library(shinyjs)
 # Load dropbox token
 drop_auth(rdstoken = "./droptoken.rds")
 
+#introduction_text <- read_file("./prototype_v2/data/intro.txt")
+introduction_text <- read_file("./data/intro.txt")
+
 # Get filenames to populate UI for now
 bundled_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/L1_DATA_FLAGS/") %>%
   pull(name)
