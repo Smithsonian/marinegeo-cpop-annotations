@@ -1,5 +1,8 @@
 
 function(input, output, session) {
+  ## Source submission server code
+  source("./submission.R", local = TRUE)
+  
   ## Reactive Objects ####
   # Initiate empty object to hold imported data
   current_data <- reactiveValues(df=data.frame())
@@ -229,7 +232,8 @@ function(input, output, session) {
       }
       
       current_site(data_inventory()[input$key_rows_selected,]$Site)
-      current_date_range(paste(min(current_data$df$timestamp),
+      current_date_range(paste(strftime(min(current_data$df$timestamp),
+                                        '%Y-%m-%d'),
                                strftime(max(current_data$df$timestamp), 
                                         '%Y-%m-%d'),
                                sep = " to "))

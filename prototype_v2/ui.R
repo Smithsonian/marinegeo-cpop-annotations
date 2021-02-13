@@ -25,30 +25,89 @@ body <- dashboardBody(
   tabItems(
     tabItem("about",
             
-            box(
-              tags$h3("MarineGEO CPOP Annotation Portal"),
-              
-              introduction_text, tags$br(), tags$br(),
-              
-              "To begin, either submit new data or load previously submitted data. Do not re-submit data.", 
-              tags$br(), tags$br(),
-              
-              splitLayout(
-                actionButton("initiate_submission", 
-                             div(div(id = "icon", icon("angle-double-up")),
-                                 tags$h3("Submit data")), 
-                             style = "padding:20px"),
-                actionButton("initiate_load", 
-                             div(div(id = "icon", icon("truck-loading")),
-                                 tags$h3("Load data")), 
-                             style = "padding:20px; font-size: large"),
-                cellArgs = list(style = "text-align:center"),
-                tags$style("#icon {font-size: xx-large}")
-              )
+            ## Introduction - About page ####
+            fluidRow(
+              box(width = 12,
+      
+                div(id = "about_block",
+                  tags$h3("MarineGEO CPOP Annotation Portal"),
+                  
+                  introduction_text, tags$br(), tags$br(),
+                  
+                  "To begin, either submit new data or load previously submitted data. Do not re-submit data.", 
+                  tags$br(), tags$br(),
+                  
+                  splitLayout(
+                    actionButton("initiate_submission", 
+                                 div(div(id = "icon", icon("angle-double-up")),
+                                     tags$h3("Submit data")), 
+                                 style = "padding:20px"),
+                    actionButton("initiate_load", 
+                                 div(div(id = "icon", icon("truck-loading")),
+                                     tags$h3("Load data")), 
+                                 style = "padding:20px; font-size: large"),
+                    cellArgs = list(style = "text-align:center"),
+                    tags$style("#icon {font-size: xx-large}")
+                  ),
+                  tags$style(HTML('#about_block{width:700px; margin:auto}'))
+                )
+            )
             )
     ),
     
-    tabItem("submit_data"),
+    ## Submit data ####
+    tabItem("submit_data",
+                
+                box(width = 12,
+                    tags$head(
+                      tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
+                    ),
+                    
+                    tags$h3("Submission Instructions"), tags$br(),
+                    tags$ol(
+                      tags$li("Provide deployment information."),
+                      tags$li("Upload the instrument's calibration file and Korexo table."), 
+                      tags$li("Review the submission summary."), 
+                      tags$li("You can begin annotating the data immediately after submission.")
+                    )),
+            
+                tabBox(id = "submission_box", width = 12,
+                  tabPanel(title = "Deployment Metadata", value = "deployment_metadata",
+                           div(id = "deployment_metadata_box", 
+                               tags$style(HTML('#deployment_metadata_box{width:700px; margin:auto}')),
+                               
+                               selectInput("submission_site", "Select MarineGEO site", 
+                                           choices = c("", "PAN-BDT", "USA-MDA", "USA-IRL")),
+                               
+                               selectInput("submission_data_type", "Select the data type",
+                                           choices = c("Water Quality", "Water Level", "Meteorological")),
+                               
+                               textInput("deployment_timestamp", "Enter the deployment date and time"),
+                               
+                               textInput("retrieval_timestamp", "Enter the retrieval date and time"),
+                               
+                               selectInput("upload_action", "Select the instrument action", 
+                                           choices = c("Sonde swap", "Troubleshooting", "Cleaning", "Calibration",
+                                                       "other (specify below)"), multiple = TRUE),
+                               
+                               textAreaInput("submission_notes", "Enter any additional notes about this submission")
+
+                           )),
+                  
+                  tabPanel(title = "Upload Files",
+                           fileInput("fileKorexo", "Korexo file",
+                                     multiple = FALSE),
+                           fileInput("fileCalibration", "Calibration file", 
+                                     multiple = FALSE)
+                  ),
+                  
+                  tabPanel(title = "Review and Submit",
+                           actionButton("confirm_submission", "Submit Data"))
+                )
+                
+            ),
+    
+    ## Load data ####
     tabItem("load_data",
             
             fluidRow(
@@ -100,6 +159,8 @@ body <- dashboardBody(
               )
             )
     ),
+    
+    ## Annotate data ####
     tabItem("annotate_data",
             fluidRow(
               column(width = 12,
@@ -161,6 +222,8 @@ body <- dashboardBody(
               )
             )
     ),
+    
+    ## Tabular Data ####
     tabItem("tabular_data",
             fluidRow(
               box(width = 12,
@@ -169,6 +232,8 @@ body <- dashboardBody(
                   
                   dataTableOutput("table_selected_points")
             ))),
+    
+    ## Review ####
     tabItem("review",
             fluidRow(
                      box(width = 12, 

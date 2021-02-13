@@ -1,0 +1,251 @@
+KorEXO Calibration File Export
+
+Last Calibration Time=,12/3/2020 10:51:07 AM
+Calibration Start Time=,12/18/2020 10:00:14 AM
+Calibration End Time=,12/18/2020 10:01:29 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,SMSFP 14H100675
+Instrument Serial Number=,14H100675
+Instrument Firmware Version=,1.0.55
+Parameter Type=,DO (% Sat)
+Sensor Type=,DO
+Sensor Serial Number=,14H100223
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+DO Cap Serial Number=,19C104047
+DO Cap Replacement Date=,6/6/2019 9:00:31 AM
+DO Gain=,1.01
+DO mg/L=,8.94 mg/L
+
+[Cal Point 1]
+Standard=,100.0 % Sat
+Pre Calibration Value=,100.8 % Sat
+Post Calibration Value=,101.0 % Sat
+Raw Value=,0.0 % Sat
+Temperature=,21.377 °C
+Stability Achieved=,Yes
+Barometer=,768.0 mmHg
+
+----------
+
+Last Calibration Time=,12/3/2020 10:57:05 AM
+Calibration Start Time=,12/18/2020 10:04:13 AM
+Calibration End Time=,12/18/2020 10:04:36 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,SMSFP 14H100675
+Instrument Serial Number=,14H100675
+Instrument Firmware Version=,1.0.55
+Parameter Type=,fDOM (RFU)
+Sensor Type=,fDOM
+Sensor Serial Number=,14G103321
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+
+[Cal Point 1]
+Standard=,0.00 RFU
+Pre Calibration Value=,0.03 RFU
+Post Calibration Value=,0.00 RFU
+Raw Value=,0.00 RFU
+Temperature=,21.561 °C
+Stability Achieved=,Yes
+
+----------
+
+Last Calibration Time=,12/3/2020 10:59:05 AM
+Calibration Start Time=,12/18/2020 10:05:15 AM
+Calibration End Time=,12/18/2020 10:07:38 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,SMSFP 14H100675
+Instrument Serial Number=,14H100675
+Instrument Firmware Version=,1.0.55
+Parameter Type=,Phycoerythrin (µg/L)
+Sensor Type=,TAL-PE
+Sensor Serial Number=,14H100360
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+
+[Cal Point 1]
+Standard=,0.00 µg/L
+Pre Calibration Value=,0.39 µg/L
+Post Calibration Value=,0.00 µg/L
+Raw Value=,0.00 µg/L
+Temperature=,21.577 °C
+Stability Achieved=,Yes
+
+[Cal Point 2]
+Standard=,126.50 µg/L
+Pre Calibration Value=,126.40 µg/L
+Post Calibration Value=,126.50 µg/L
+Raw Value=,0.00 µg/L
+Temperature=,21.518 °C
+Stability Achieved=,Yes
+
+----------
+
+Last Calibration Time=,12/3/2020 11:03:15 AM
+Calibration Start Time=,12/18/2020 10:09:42 AM
+Calibration End Time=,12/18/2020 10:12:16 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,SMSFP 14H100675
+Instrument Serial Number=,14H100675
+Instrument Firmware Version=,1.0.55
+Parameter Type=,Chlorophyll (µg/L)
+Sensor Type=,TAL-PE
+Sensor Serial Number=,14H100360
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+
+[Cal Point 1]
+Standard=,0.00 µg/L
+Pre Calibration Value=,-0.01 µg/L
+Post Calibration Value=,0.00 µg/L
+Raw Value=,0.00 µg/L
+Temperature=,21.503 °C
+Stability Achieved=,Yes
+
+[Cal Point 2]
+Standard=,66.00 µg/L
+Pre Calibration Value=,65.66 µg/L
+Post Calibration Value=,66.00 µg/L
+Raw Value=,0.00 µg/L
+Temperature=,21.449 °C
+Stability Achieved=,Yes
+
+----------
+
+Last Calibration Time=,12/3/2020 11:11:02 AM
+Calibration Start Time=,12/18/2020 10:16:22 AM
+Calibration End Time=,12/18/2020 10:18:56 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,SMSFP 14H100675
+Instrument Serial Number=,14H100675
+Instrument Firmware Version=,1.0.55
+Parameter Type=,Turbidity (FNU)
+Sensor Type=,Turbidity
+Sensor Serial Number=,16G104076
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+
+[Cal Point 1]
+Standard=,0.00 FNU
+Pre Calibration Value=,-0.20 FNU
+Post Calibration Value=,0.00 FNU
+Raw Value=,0.00 FNU
+Temperature=,21.556 °C
+Stability Achieved=,Yes
+
+[Cal Point 2]
+Standard=,124.00 FNU
+Pre Calibration Value=,127.93 FNU
+Post Calibration Value=,124.00 FNU
+Raw Value=,0.00 FNU
+Temperature=,21.710 °C
+Stability Achieved=,Yes
+
+----------
+
+Last Calibration Time=,12/3/2020 11:15:17 AM
+Calibration Start Time=,12/18/2020 10:22:56 AM
+Calibration End Time=,12/18/2020 10:26:36 AM
+Calibration Status=,CompletedWithWarnings
+QC Score=,Bad
+Instrument Type=,EXO2
+Instrument Name=,SMSFP 14H100675
+Instrument Serial Number=,14H100675
+Instrument Firmware Version=,1.0.55
+Parameter Type=,pH
+Sensor Type=,pH
+Sensor Serial Number=,14H100812
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+Sensor Module Replacement Date=,4/21/2021 12:00:00 AM
+pH Range 7.00-10.00 Delta Slope=,149.4 mV
+pH Range 7.00-10.00 mV per Decade=,49.80
+
+[Cal Point 1]
+Standard=,7.00 pH
+Pre Calibration Value=,10.23 pH
+Post Calibration Value=,7.00 pH
+Raw Value=,-239.1 mV
+Temperature=,21.704 °C
+Stability Achieved=,Yes
+
+[Cal Point 2]
+Standard=,10.00 pH
+Pre Calibration Value=,12.83 pH
+Post Calibration Value=,10.00 pH
+Raw Value=,-388.5 mV
+Temperature=,21.761 °C
+Stability Achieved=,Yes
+
+----------
+
+Last Calibration Time=,<Unknown>
+Calibration Start Time=,12/18/2020 10:29:20 AM
+Calibration End Time=,12/18/2020 10:29:20 AM
+Calibration Status=,FactoryReset
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,SMSFP 14H100675
+Instrument Serial Number=,14H100675
+Instrument Firmware Version=,1.0.55
+Parameter Type=,pH
+Sensor Type=,pH
+Sensor Serial Number=,14H100812
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+
+----------
+
+Last Calibration Time=,<Unknown>
+Calibration Start Time=,12/18/2020 10:40:11 AM
+Calibration End Time=,12/18/2020 10:40:11 AM
+Calibration Status=,FactoryReset
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,SMSFP 14H100675
+Instrument Serial Number=,14H100675
+Instrument Firmware Version=,1.0.55
+Parameter Type=,pH
+Sensor Type=,pH
+Sensor Serial Number=,14H100812
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+
+----------
+
+Last Calibration Time=,12/3/2020 11:19:41 AM
+Calibration Start Time=,12/18/2020 10:42:44 AM
+Calibration End Time=,12/18/2020 10:44:59 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,SMSFP 14H100675
+Instrument Serial Number=,14H100675
+Instrument Firmware Version=,1.0.55
+Parameter Type=,Sp Cond (µS/cm)
+Sensor Type=,Conductivity
+Sensor Serial Number=,17A101672
+Sensor Firmware Version=,3.0.5
+User ID=,<Unknown>
+Cell Constant=,5.23
+
+[Cal Point 1]
+Standard=,50000.0 µS/cm
+Pre Calibration Value=,49922.3 µS/cm
+Post Calibration Value=,50000.0 µS/cm
+Raw Value=,0.0 µS/cm
+Temperature=,21.622 °C
+Stability Achieved=,Yes
+
+----------
