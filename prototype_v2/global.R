@@ -9,6 +9,7 @@ library(readr)
 library(magrittr)
 library(dplyr)
 library(tidyr)
+library(tibble)
 library(data.table)
 library(rdrop2)
 library(DT)
@@ -17,6 +18,9 @@ library(shinyjs)
 
 # Load dropbox token
 drop_auth(rdstoken = "./droptoken.rds")
+
+#introduction_text <- read_file("./prototype_v2/data/intro.txt")
+introduction_text <- read_file("./data/intro.txt")
 
 # Get filenames to populate UI for now
 bundled_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/L1_DATA_FLAGS/") %>%
@@ -98,6 +102,14 @@ if(nrow(annotation_directory) == 0){
 
 # Record working directory to return to after moving to temporary directory
 original_wd <- getwd()
+
+# function to stamp files with the time of submission
+humanTime <- function() format(Sys.time(), "%Y%m%d-%H%M%OS")
+
+submissionDate <- function() format(Sys.time(), "%Y%m%d")
+
+rosetta <- read_csv("./data/MarineGEO_rosetta.csv",
+                    locale = locale(encoding = "Windows-1252"))
 
 jscode <-
   '$(document).on("shiny:connected", function(e) {

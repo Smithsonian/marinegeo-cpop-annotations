@@ -1,5 +1,8 @@
 
 function(input, output, session) {
+  ## Source submission server code
+  source("./submission.R", local = TRUE)
+  
   ## Reactive Objects ####
   # Initiate empty object to hold imported data
   current_data <- reactiveValues(df=data.frame())
@@ -28,6 +31,15 @@ function(input, output, session) {
   
   current_min_date <- reactiveVal(NULL)
   current_max_date <- reactiveVal(NULL)
+  
+  ## Welcome tab logic ####
+  observeEvent(input$initiate_submission, {
+    updateTabItems(session, "tabs", "submit_data")
+  })
+  
+  observeEvent(input$initiate_load, {
+    updateTabItems(session, "tabs", "load_data")
+  })
   
   ## Track QC progress info box ####
   current_qc_progress <- reactive({
@@ -220,7 +232,8 @@ function(input, output, session) {
       }
       
       current_site(data_inventory()[input$key_rows_selected,]$Site)
-      current_date_range(paste(min(current_data$df$timestamp),
+      current_date_range(paste(strftime(min(current_data$df$timestamp),
+                                        '%Y-%m-%d'),
                                strftime(max(current_data$df$timestamp), 
                                         '%Y-%m-%d'),
                                sep = " to "))
