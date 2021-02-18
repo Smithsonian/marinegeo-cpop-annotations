@@ -40,18 +40,14 @@ body <- dashboardBody(
                   splitLayout(
                     actionButton("initiate_submission", 
                                  div(div(id = "icon", icon("angle-double-up")),
-                                     tags$h3("Submit data")), 
-                                 style = "padding:20px"),
+                                     tags$h3("Submit data"))), 
                     actionButton("initiate_load", 
                                  div(div(id = "icon", icon("truck-loading")),
-                                     tags$h3("Load data")), 
-                                 style = "padding:20px; font-size: large"),
-                    cellArgs = list(style = "text-align:center"),
-                    tags$style("#icon {font-size: xx-large}")
-                  ),
-                  tags$style(HTML('#about_block{width:700px; margin:auto}'))
+                                     tags$h3("Load data"))), 
+                    cellArgs = list(style = "text-align:center")
+                  )
                 )
-            )
+              )
             )
     ),
     
@@ -60,7 +56,8 @@ body <- dashboardBody(
                 
                 box(width = 12,
                     tags$head(
-                      tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
+                      tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css"),
+                      tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
                     ),
                     
                     tags$h3("Submission Instructions"), tags$br(),
@@ -148,11 +145,7 @@ body <- dashboardBody(
                          dataTableOutput("key"),
                          
                          tags$br(), 
-                         
-                         tags$head(
-                           tags$style(HTML('#loadData{color:white}'))
-                         ),
-                         
+
                          # Read in data selected in table
                          actionButton("loadData", "Load data", class = "btn-primary")
                      )
@@ -164,12 +157,51 @@ body <- dashboardBody(
     tabItem("annotate_data",
             fluidRow(
               column(width = 12,
-                     box(width = NULL,
-                         title = NULL,
-                         status = "warning",
+                     box(width = NULL, title = "Plot Options", collapsible = T,
                          
-                         # Accept, reject, and/or revise flags
-                         uiOutput("quality_control_box")
+                         splitLayout(
+                           id = "plot_controls_split_layout",
+                           
+                           div(class = "plot_controls",
+
+                               annotation_controls_UI("control_plot_1")
+                               #selectInput("sensor_plot_1", "Plot 1: Select a sensor",
+                               #            c("", names(sensor_vector_l1)), multiple = FALSE),
+                               
+                               # conditional dropdown for sensor parameters at selected site and sensor
+                               #uiOutput("parameter_plot_1")
+                           ),
+                           
+                           div(class = "plot_controls",
+                               annotation_controls_UI("control_plot_2")
+                               
+                               # selectInput("sensor_plot_2", "Plot 2: Select a sensor",
+                               #             c("", names(sensor_vector_l1)), multiple = FALSE),
+                               # 
+                               # uiOutput("parameter_plot_2")
+
+                           ),
+                           
+                           div(class = "plot_controls",
+                               radioButtons("label_mode", "Plot labels",
+                                            choices = c("Flags",
+                                                        "Codes"))
+                           ),
+                           div(class = "plot_controls",
+                               selectInput("view_mode", "Show:",
+                                           choices = c("All points",
+                                                       "Flags that require review",
+                                                       "Only accepted flags",
+                                                       "Only rejected flags",
+                                                       "Points that require codes"))
+                           ),
+                           div(class = "plot_controls",
+                               uiOutput("start_date"),
+                               selectInput("date_interval", label = "Select a date interval", 
+                                           choices = c("All data", "1 day", "1 week", "1 month"))
+                           )
+                         )
+                         
                      )
               )
             ),
@@ -181,57 +213,27 @@ body <- dashboardBody(
                      box(width = NULL,
                          title = NULL,
                          status = "primary",
-
-                         splitLayout(
-                           style = "border: 1px solid silver;",
-                           #cellWidths = "25%",
-                           cellArgs = list(style = "padding: 20px;"),
-                           
-                           div(
-                             selectInput("sensor_qc", "Select a sensor",
-                                         c("", names(sensor_vector_l1)), multiple = FALSE),
-                             
-                             # conditional dropdown for sensor parameters at selected site and sensor
-                             uiOutput("parameter_qc")
-                           ),
-                           
-                           radioButtons("label_mode", "Plot labels",
-                                        choices = c("Flags",
-                                                    "Codes")),
-                           
-                           selectInput("view_mode", "Show:",
-                                       choices = c("All points",
-                                                   "Flags that require review",
-                                                   "Only accepted flags",
-                                                   "Only rejected flags",
-                                                   "Points that require codes")),
-                           
-                           div(
-                             uiOutput("start_date"),
-                             #dateInput("start_date", label = "Update start date"),
-                             selectInput("date_interval", label = "Select a date interval", 
-                                         choices = c("All data", "1 day", "1 week", "1 month"))
-                           )
-                         ),
                          
-                         tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
-                         
-                         plotlyOutput("plot_qc")
+                         # Accept, reject, and/or revise flags
+                         uiOutput("quality_control_box"),
+                         hr(),
+                         annotation_plot_UI("plot"),
+                         #plotlyOutput("plot_qc")
                          
                      )
               )
             )
     ),
     
-    ## Tabular Data ####
-    tabItem("tabular_data",
-            fluidRow(
-              box(width = 12,
-                  status = "primary",
-                  title = "View Tabular Data",
-                  
-                  dataTableOutput("table_selected_points")
-            ))),
+    # ## Tabular Data ####
+    # tabItem("tabular_data",
+    #         fluidRow(
+    #           box(width = 12,
+    #               status = "primary",
+    #               title = "View Tabular Data",
+    #               
+    #               dataTableOutput("table_selected_points")
+    #         ))),
     
     ## Review ####
     tabItem("review",

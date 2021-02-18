@@ -1,0 +1,38 @@
+/* About Page */
+
+#icon {
+	font-size: xx-large
+}
+
+#about_block{
+	width:700px; 
+	margin:auto
+}
+
+#initiate_submission {
+	padding:20px;
+}
+
+#initiate_load {
+	padding:20px; 
+}
+
+/* Load Data */
+
+#loadData{
+	color:white
+}
+
+/* Annotate Data */
+
+.shiny-split-layout > div {
+	overflow: visible;
+}
+
+#plot_controls_split_layout {
+	/* border: 1px solid silver */
+}
+
+.plot_controls {
+	padding: 5px
+}
