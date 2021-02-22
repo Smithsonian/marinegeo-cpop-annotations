@@ -218,6 +218,10 @@ body <- dashboardBody(
                          uiOutput("quality_control_box"),
                          hr(),
                          annotation_plot_UI("plot"),
+                         
+                         verbatimTextOutput("click"),
+                         verbatimTextOutput("brush")
+                         
                          #plotlyOutput("plot_qc")
                          
                      )

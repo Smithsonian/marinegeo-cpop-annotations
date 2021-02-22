@@ -75,8 +75,10 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
     
     reactive({
 
-      if(input$parameter_qc == ""){
-        return(data.frame())
+      if(is.null(input$parameter_qc)){
+        return(NULL)
+      } else if(input$parameter_qc == ""){
+        return(NULL)
       }
       
       df <- current_data$df %>%
@@ -91,7 +93,9 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
         mutate(code = case_when(
           is.na(code) ~ "No code applied",
           T ~ code
-        ))
+        )) %>%
+        mutate(code = as.factor(code),
+               flag = as.factor(flag))
 
       if(view_mode() == "Flags that require review"){
         df <- df %>%
@@ -120,59 +124,76 @@ annotation_plot_UI <- function(id){
   ns <- NS(id)
   
   div(id = id,
-      plotlyOutput(ns("plot_qc"))
+      #plotlyOutput(ns("plot_qc"), height = "600px")
+      uiOutput(ns("plot_window"))
   )
 }
 
-annotation_plot_server <- function(id, df1, df2, label_type, start_date, date_range_max){
+annotation_plot_server <- function(id, plotting_data, label_type, start_date, date_range_max){
   
   moduleServer(id, function(input, output, session) {
     
-    # current_parameter <- reactive({
-    #   colnames(df1())[3]
-    # })
-    # 
+    output$plot_window <- renderUI({
+      plotlyOutput(session$ns("plot_qc"), height = getPlotHeight())
+    })
+    
+    getPlotHeight <- reactive({
+      if(length(plotting_data()) > 1){
+        return("700px")
+      } else { return("400px")}
+    })
+    
+    getPlotLabels <- reactive({
+      
+      label_list <- lapply(plotting_data(), function(i){
+        unique(unlist(i[label_type()]))
+      })
+      
+      raw_labels <- unique(unlist(label_list))
+      
+      labels <- unname(factor(raw_labels, levels = c(as.character(raw_labels))))
+      
+    })
+    
     output$plot_qc <- renderPlotly({
+      
+      plot_objects <- lapply(plotting_data(), function(i){
         
-      parameter_plot_1 <- colnames(df1())[3]
-        #req(input$parameter_qc)
-        #reset_plot_status()
-        a <- plot_ly(df1(), x = ~timestamp, y = ~get(parameter_plot_1),
+        plotted_parameter <- colnames(i)[3]
+        
+        plot <- i %>%
+          mutate(!!label_type() := factor(.data[[label_type()]], levels = as.character(getPlotLabels())))
+        
+        plot_ly(plot, x = ~timestamp, y = ~get(plotted_parameter),
                 color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively
                 key=~ID, type = "scatter", legendgroup = ~get(label_type()), showlegend = F) %>%
           layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
-                               #y = -.6),
-                 yaxis = list(title = parameter_plot_1),
+                 #y = -.6),
+                 yaxis = list(title = plotted_parameter),
                  xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
                               range = c(start_date(), as.Date(date_range_max())))) %>%
-          toWebGL()  # Conversion from SVG drastically improves performance
-        
-        dummy_df <- data.frame(labels = unique(df1()[label_type()]))
-        dummy_df$x <- df1()$timestamp[1]
-        dummy_df$y <- unlist(df1()[parameter_plot_1])[1]
-        dummy_df$ID <- df1()$ID[1]
-    
-        a <- add_trace(a, data = dummy_df, x = ~x, y = ~y, color = ~get(label_type()), type = "scatter", 
-                       showlegend = TRUE, legendgroup = ~get(label_type()), hoverinfo = 'none')
-        
-        if(nrow(df2()) > 0){
-          parameter_plot_2 <- colnames(df2())[3]
-          
-          b <- plot_ly(df2(), x = ~timestamp, y = ~get(parameter_plot_2),
-                       color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively
-                       key=~ID, type = "scatter", legendgroup = ~get(label_type()), showlegend = F) %>%
-            layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
-                   #y = -.6),
-                   yaxis = list(title = parameter_plot_2),
-                   xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
-                                range = c(start_date(), as.Date(date_range_max())))) %>%
-            toWebGL()
-          
-          subplot(a,b, nrows = 2, shareX = T)
-        } else {
-          a          
-        }
+          toWebGL()
       })
+      
+      if(length(plot_objects) > 0){
+        
+        dummy_df <- setNames(data.frame(col1 = getPlotLabels()), label_type())
+        dummy_df$x <- plotting_data()[[1]]$timestamp[1]
+        dummy_df$y <- unlist(plotting_data()[[1]][colnames(plotting_data()[[1]])[3]])[1]
+        dummy_df$ID <- plotting_data()[[1]]$ID[1]
+        
+        plot_objects[[1]] <- plot_objects[[1]] %>%
+          add_trace(data = dummy_df, x = ~x, y = ~y, color = ~get(label_type()), type = "scatter",
+                    showlegend = TRUE, legendgroup = ~get(label_type()), hoverinfo = 'none')
+        
+        if(length(plot_objects) > 1){
+          subplot(plot_objects, nrows = 2, shareX = T, titleY = TRUE)
+        } else {
+          plot_objects[[1]]
+        }
+        
+      }
+    })
   })
 }
 

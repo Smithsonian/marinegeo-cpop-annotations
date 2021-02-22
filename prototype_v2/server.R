@@ -360,41 +360,25 @@ function(input, output, session) {
   #plot_object_1 <- annotation_plot_server("plot_1", "Plot 1: Select a parameter", current_data$df)
   data_plot_1 <- annotation_controls_server("control_plot_1", current_data, qc_output, view_mode) # UI controls
   data_plot_2 <- annotation_controls_server("control_plot_2", current_data, qc_output, view_mode) # UI controls
+  
+  # Combine output from annotation control server into a single list
+  # Drop empty list objects so they don't get evaluated by the plot module
+  # List objects are empty if no parameter is selected
+  plotting_data <- reactive({
+    compact(list(df1 = data_plot_1(), df2 = data_plot_2()))
+  })
+  
+  annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max)
 
-  annotation_plot_server("plot", data_plot_1, data_plot_2, label_type, start_date, date_range_max)
-
-  #   req(input$parameter_qc)
-  #   
-  #   reset_plot_status()
-  #   
-  #   plot_ly(subset_data(), x = ~timestamp, y = ~get(input$parameter_qc), 
-  #           color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively 
-  #           key=~ID, type = "scatter") %>%
-  #     # rangeslider(type = "date"
-  #     #             #borderwidth = 1,
-  #     #             #thickness = .15) %>%
-  #     #             #yaxis = list(
-  #     #             #range = c(40,60)
-  #     # ) %>%
-  #     layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
-  #                          #y = -.6),
-  #            yaxis = list(title = input$parameter_qc),
-  #            xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
-  #                         range = c(input$start_date, as.Date(date_range_max()))
-  #                         # rangeselector = list(
-  #                         #   buttons = list(
-  #                         #     list(count = 24, label = "1 day", step = "hour", stepmode = "todate"),
-  #                         #     list(count = 3, label = "3 days", step = "day", stepmode = "todate"),
-  #                         #     list(count = 7, label = "1 wk", step = "day", stepmode = "todate"),
-  #                         #     list(count = 1, label = "1 mo", step = "month", stepmode = "todate")
-  #                         #   )
-  #                         # )
-  #                         ),
-  #            # rangeslider = list(bgcolor = '#000',
-  #            #                    type = "date")),
-  #            showlegend = TRUE) %>%
-  #     toWebGL()  # Conversion from SVG drastically improves performance
-  # })
+  output$click <- renderPrint({
+    d <- event_data("plotly_click")
+    if (!is.null(d)) d
+  })
+  
+  output$brush <- renderPrint({
+    d <- event_data("plotly_selected")
+    if (!is.null(d)) d
+  })
   
   # ## Apply QC logic ####
   # 
