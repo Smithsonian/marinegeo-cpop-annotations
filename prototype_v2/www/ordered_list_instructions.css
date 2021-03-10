@@ -6,8 +6,8 @@ ol {
     counter-reset: numList;
 }
 ol li {
-    width: 300px;
-    margin-right: 44px;
+    width: 235px;
+    margin-right: 35px;
     float: left;
     position: relative
 }

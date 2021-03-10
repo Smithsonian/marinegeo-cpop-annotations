@@ -6,6 +6,7 @@ function(input, output, session) {
   ## Reactive Objects ####
   # Initiate empty object to hold imported data
   current_data <- reactiveValues(df=data.frame())
+  # current_data <- reactiveValues(df=dat)
   
   # Empty dataframes will hold points selected for level 1 QC flags and level 2 QC flags and codes
   qc_output <- reactiveValues(flags = tibble(ID = as.character(NA),
@@ -15,18 +16,42 @@ function(input, output, session) {
                                              flag = as.character(NA),
                                              .rows = 0),
                               codes = tibble(ID = as.character(NA),
-                                             #timestamp = as.POSIXct(NA), 
+                                             #timestamp = as.POSIXct(NA),
                                              sensor = as.character(NA),
                                              code = as.character(NA),
                                              .rows = 0))
   
-  sensor_parameters <- reactiveVal("") # Holds parameters available for currently selected sensor
-  parameter_mean <- reactiveVal(NA) # Mean of currently selected parameter to fill in for missing data
+  # qc_output <- reactiveValues(flags = dat_flags,
+  #                             codes = tibble(ID = as.numeric(NA),
+  #                                            #timestamp = as.POSIXct(NA), 
+  #                                            sensor = as.character(NA),
+  #                                            code = as.character(NA),
+  #                                            .rows = 0))
+  
+  # current_site <- reactiveVal("PAN-BDT")
+  # current_date_range <- reactiveVal(paste(strftime(min(dat$timestamp),
+  #                                                  '%Y-%m-%d'),
+  #                                         strftime(max(dat$timestamp), 
+  #                                                  '%Y-%m-%d'),
+  #                                         sep = " to "))
+  
+  # Set min and max for start date input
+  #current_min_date <- reactiveVal(min(dat$timestamp))
+  #current_max_date <- reactiveVal(max(dat$timestamp))
+  
+  #sensor_parameters <- reactiveValues(plot_1 = "", plot_2 = "") # Holds parameters available for currently selected sensor in plot 1 and 2
+
+  #parameter_mean <- reactiveVal(NA) # Mean of currently selected parameter to fill in for missing data
   current_file <- reactiveVal(NA) # Filename for data currently loaded
   current_site <- reactiveVal(NA) # Site for data currently loaded
   current_date_range <- reactiveVal(NA) # Date range for data currently loaded
   in_progress_qc <- reactiveValues() # Holds decision and outcomes of qc process until user cancels or confirms all decisions
-  sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
+  
+  # Formatted name of selected sensors (transformed from UI-friendly versions)
+  # sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
+  view_mode <- reactive({input$view_mode})
+  start_date <- reactive({input$start_date})
+  
   reset_plot_status <- reactiveVal(0)
   
   current_min_date <- reactiveVal(NULL)
@@ -110,45 +135,16 @@ function(input, output, session) {
   #   )
   # })
 
-  ## Datatable output for import ####
+  # ## Datatable output for import ####
   output$key <- renderDataTable({
     datatable(data_inventory(),
               selection = "single")
   })
   
-  ## UI objects for annotations ####
-  output$parameter_qc <- renderUI({
-    selectInput("parameter_qc", "Select a parameter to QC",
-                sensor_parameters(), multiple = FALSE)
-  })
-  
+   
   output$start_date <- renderUI({
-    dateInput("start_date", label = "Update start date", 
+    dateInput("start_date", label = "Update start date",
               value = current_min_date(), min = current_min_date(), max = current_max_date())
-  })
-  
-  # NA values are currently getting plotted as the mean of the selected parameter
-  # Only want to change the value before plotting, not the underlying data frame
-  observeEvent(input$parameter_qc, {
-
-    if(input$parameter_qc %in% sensor_parameters_df$parameter){
-      parameter_mean(
-        current_data$df %>%
-          summarize(mean = mean(!!sym(input$parameter_qc), na.rm=T)) %>%
-          pull(mean)
-      )
-    }
-    
-  })
-  
-  observeEvent(input$sensor_qc, {
-    # Update parameters based on sensor selection
-    sensor_parameters(
-      sensor_parameters_df %>%
-        filter(sensor %in% input$sensor_qc,
-               parameter %in% colnames(current_data$df)) %>%
-        pull(parameter)
-    )
   })
   
   ## Load Data ####
@@ -188,6 +184,7 @@ function(input, output, session) {
             mutate_all(as.character)# %>%
             #mutate(timestamp = ymd_hms(timestamp))
         }
+        
         flags_filename <- gsub("L1-data", "L2-flags", current_file())
         
         qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_flags/",
@@ -253,70 +250,13 @@ function(input, output, session) {
     }
   })
   
-  # Reactives for plotting ####
-  
-  # Return dataframe containing timestamps and codes 
-  # Codes are collapsed to a single row for plotting 
-  code_timestamps <- reactive({
-    # Determine if observations for current sensor have been annotated
-    qc_output$codes %>%
-      filter(sensor == sensor_flag()) %>%
-      group_by(ID) %>%
-      summarize(code = paste(code, collapse = ", "))
-  })
-  
-  # Return dataframe containing timestamps and flags 
-  # There should only be one flag per timestamp 
-  flag_timestamps <- reactive({
-    qc_output$flags %>%
-      filter(sensor == sensor_flag()) %>%
-      select(-sensor)
-  })
-  
-  subset_data <- reactive({
-    
-    df <- current_data$df %>%
-      select(timestamp, ID, all_of(input$parameter_qc)) %>%
-      merge(flag_timestamps(), by="ID", all.x=TRUE) %>%
-      merge(code_timestamps(), by="ID", all.x=TRUE) %>%
-      # Provide values to missing data
-      mutate(!!input$parameter_qc := case_when(
-        flag == "Missing Data" ~ parameter_mean(),
-        T ~ .data[[input$parameter_qc]]
-      )) %>%
-      mutate(code = case_when(
-        is.na(code) ~ "No code applied",
-        T ~ code
-      ))
-    
-    if(input$view_mode == "Flags that require review"){
-      df <- df %>%
-        filter(status == "Not evaluated")
-      
-    } else if(input$view_mode == "Only accepted flags"){
-      df <- df %>%
-        filter(status == "Approved")
-      
-    } else if(input$view_mode == "Only rejected flags"){
-      df <- df %>%
-        filter(status == "Revised")
-      
-    } else if(input$view_mode == "Points that require codes"){
-      df <- df %>%
-        filter(code == "No code applied")
-    } 
-    
-    return(df)
-    
-  })
-  
-  # Reformats label_mode input for plotly color argument (ex: Codes to code)
+  # # Reformats label_mode input for plotly color argument (ex: Codes to code)
   label_type <- reactive({
     gsub("s", "", tolower(input$label_mode))
   })
   
   date_range_max <- reactive({
-    
+
     if(input$date_interval == "All data"){
       return(current_max_date())
     } else if(input$date_interval == "1 day"){
@@ -328,74 +268,83 @@ function(input, output, session) {
     }
   })
   
-  ## Plots ####
-  
   # Generate a plot of the data 
-  output$plot_qc <- renderPlotly({
+  #output$plot_qc <- renderPlotly({
+  #plot_object_1 <- annotation_plot_server("plot_1", "Plot 1: Select a parameter", current_data$df)
+  data_plot_1 <- annotation_controls_server("control_plot_1", current_data, qc_output, view_mode) # UI controls
+  data_plot_2 <- annotation_controls_server("control_plot_2", current_data, qc_output, view_mode) # UI controls
+  
+  # Combine output from annotation control server into a single list
+  # Drop empty list objects so they don't get evaluated by the plot module
+  # List objects are empty if no parameter is selected
+  plotting_data <- reactive({
     
-    req(input$parameter_qc)
+    dat_list <- compact(list(df1 = data_plot_1(), df2 = data_plot_2()))
     
-    reset_plot_status()
+    max_row_value <- 0
+    # Assign a unique ID to each observation in the list
+    # Necessary to determine which subplot was selected in QC
+    if(length(dat_list) > 0){
+      for(i in 1:length(dat_list)){
+        first_row_value <- max_row_value + 1
+        max_row_value <- max_row_value + nrow(dat_list[[i]])
+        
+        dat_list[[i]]$parameter_name <- colnames(dat_list[[i]])[3]
+        dat_list[[i]]$plot_id <- first_row_value:max_row_value
+      }
+    }
     
-    plot_ly(subset_data(), x = ~timestamp, y = ~get(input$parameter_qc), 
-            color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively 
-            key=~ID, type = "scatter") %>%
-      # rangeslider(type = "date"
-      #             #borderwidth = 1,
-      #             #thickness = .15) %>%
-      #             #yaxis = list(
-      #             #range = c(40,60)
-      # ) %>%
-      layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
-                           #y = -.6),
-             yaxis = list(title = input$parameter_qc),
-             xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
-                          range = c(input$start_date, as.Date(date_range_max()))
-                          # rangeselector = list(
-                          #   buttons = list(
-                          #     list(count = 24, label = "1 day", step = "hour", stepmode = "todate"),
-                          #     list(count = 3, label = "3 days", step = "day", stepmode = "todate"),
-                          #     list(count = 7, label = "1 wk", step = "day", stepmode = "todate"),
-                          #     list(count = 1, label = "1 mo", step = "month", stepmode = "todate")
-                          #   )
-                          # )
-                          ),
-             # rangeslider = list(bgcolor = '#000',
-             #                    type = "date")),
-             showlegend = TRUE) %>%
-      toWebGL()  # Conversion from SVG drastically improves performance
+    return(dat_list)
   })
   
+  annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max)
+
   ## Apply QC logic ####
 
-  # Reactive used to determine which points are in selection
+  quality_control_stage <- reactiveVal(NA)
+  n_flags_unapproved <- reactiveVal(NA)
+  n_codes_unassigned <- reactiveVal(NA)
+  total_points_in_selection <- reactiveVal(NA)
+  selection <- reactiveValues(df = tibble())
+  sensor_flag <- reactiveVal(NA)
+  
+  # # Reactive used to determine which points are in selection
   getPlotlySelection <- reactive({
     req(event_data("plotly_selected"))
+
+    dat <- bind_rows(plotting_data()) %>%
+      filter(plot_id %in% event_data("plotly_selected")$key)
     
-    dat <- subset_data()
+    selected_parameter <- dat %>%
+      select(parameter_name) %>%
+      distinct() %>%
+      pull(parameter_name)
     
-    brush_subset <- event_data("plotly_selected") %>%
-      mutate(key = as.character(key))
+    selected_sensor <- sensor_parameters_df %>%
+      filter(parameter == selected_parameter) %>%
+      pull(sensor_abbreviation)
     
-    # Return subset of data within selection
-    dat %>%
-      mutate(ID = as.character(ID)) %>%
-      filter(ID %in% brush_subset$key) 
+    sensor_flag(selected_sensor)
+    
+    return(dat)
+    # dat <- subset_data()
+    # 
+    # brush_subset <- event_data("plotly_selected") %>%
+    #   mutate(key = as.character(key))
+    # 
+    # # Return subset of data within selection
+    # dat %>%
+    #   mutate(ID = as.character(ID)) %>%
+    #   filter(ID %in% brush_subset$key)
   })
-  
+
   ## ... QC UI box ####
   # UI options will depend on status of QC and is hierarchical
   # If no points selected, show instructions. Once selected:
   # ... First: any flags not yet approved/rejected
   # ... Second: provide option to add code(s)
   # ... Third: revise flags and/or code(s)
-  
-  quality_control_stage <- reactiveVal(NA)
-  n_flags_unapproved <- reactiveVal(NA)
-  n_codes_unassigned <- reactiveVal(NA)
-  total_points_in_selection <- reactiveVal(NA)
-  selection <- reactiveValues(df = tibble())
-  
+
   getQualityControlUI <- reactive({
     if(is.null(event_data("plotly_selected"))){
       div(
@@ -405,8 +354,8 @@ function(input, output, session) {
         tags$h3("Quality Control Instructions"), tags$br(),
         tags$ol(
           tags$li("Select a sensor and parameter below to plot data"),
-          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."), 
-          tags$li("Flags have been algorithmically assigned to each point and must be either accepted or rejected. If they are rejected, you must provide an updated flag."), 
+          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
+          tags$li("Flags have been algorithmically assigned to each point and must be either accepted or rejected. If they are rejected, you must provide an updated flag."),
           tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
         )
       )
@@ -418,59 +367,59 @@ function(input, output, session) {
         tags$h3("Quality Control Instructions"), tags$br(),
         tags$ol(
           tags$li("Select a sensor and parameter below to plot data"),
-          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."), 
-          tags$li("Flags have been algorithmically assigned to each point and must be either accepted or rejected. If they are rejected, you must provide an updated flag."), 
+          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
+          tags$li("Flags have been algorithmically assigned to each point and must be either accepted or rejected. If they are rejected, you must provide an updated flag."),
           tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
         )
       )
     } else if(quality_control_stage() == "accept flags"){
       div(id = "accept_flag_div",
-          tags$h3("Approve or Revise Initial Flags"), 
+          tags$h3("Approve or Revise Initial Flags"),
           tags$b(paste(n_flags_unapproved(), "of", total_points_in_selection(), "selected observations have pending flags. ", sep = " ")),
           "Approve or reassign flags for these points. Once you select \"reassign\", you will select an updated flag.",
           tags$br(), tags$br(),
-          
+
           splitLayout(
             cellWidths = "50%",
             div(
-              actionButton("accept_flags", "Accept flags", class = "btn-primary"), 
+              actionButton("accept_flags", "Accept flags", class = "btn-primary"),
               actionButton("reject_flags", "Reassign flags", class = "btn-danger"),
-              
+
               tags$br(), tags$br(),
               actionButton("cancel_selection", "Cancel selection")
             ),
             div()),
-          
+
           tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}
                                     #reject_flags{color:white} #accept_flags{color:white}")))
-          
+
       )
     } else if (quality_control_stage() == "revise flags"){
       div(
         tags$h3("Revise Quality Control Flag"),
-        
+
         splitLayout(
           cellWidths = "50%",
           div(
-            selectInput("revise_flags", "Select updated flag", 
+            selectInput("revise_flags", "Select updated flag",
                         choices = unname(qc_flags)),
-            actionButton("confirm_revisions", "Confirm revised flags", class = "btn-primary"), 
+            actionButton("confirm_revisions", "Confirm revised flags", class = "btn-primary"),
             actionButton("cancel_selection", "Cancel selection")
           ),
           div()),
-        
+
         tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}
                                     #confirm_revisions{color:white}")))
-        
+
       )
-      
+
     } else if(quality_control_stage() == "revise codes"){
       div(id = "revise_codes_div",
           tags$h3("Add or Revise Quality Control Codes"),
           tags$b(paste(n_codes_unassigned(), "of", total_points_in_selection(), "selected observations have not been assigned a code. ", sep = " ")),
           "Assign a general or sensor code for ", tags$b("all"), " selected points. You may also select one or more comment codes.",
           tags$br(), tags$br(),
-          
+
           splitLayout(
             div(splitLayout(
               div(
@@ -483,17 +432,17 @@ function(input, output, session) {
                           choices = comment_codes, multiple = TRUE)
             )),
             div()),
-          
+
           tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}
                                                 #confirm_codes{color:white}")))
       )
     } else if(quality_control_stage() == "update annotations"){
       div(id = "update_annotations_div",
-          tags$h3("Update Quality Control Flags and/or Codes"), 
-          "All selected observations have confirmed flags and been assigned quality control codes. You may revise either. ", 
+          tags$h3("Update Quality Control Flags and/or Codes"),
+          "All selected observations have confirmed flags and been assigned quality control codes. You may revise either. ",
           "If you revise flags, you will be given the option to revise the codes.",
           tags$br(), tags$br(),
-          
+
           splitLayout(
             cellWidths = "50%",
             splitLayout(
@@ -505,30 +454,30 @@ function(input, output, session) {
             div()))
     }
   })
-  
-  # Triggers start of QC workflow when a selection event occurs
+  # 
+  # # Triggers start of QC workflow when a selection event occurs
   observeEvent(!is.null(event_data("plotly_selected")), {
-    
+
     if(is.data.frame(event_data("plotly_selected"))){
       selection$df <- getPlotlySelection()
       n_flags_unapproved(length(selection$df$status[selection$df$status == "Not evaluated"]))
       n_codes_unassigned(length(selection$df$code[selection$df$code == "No code applied"]))
       total_points_in_selection(nrow(selection$df))
-      
+
       if("Not evaluated" %in% selection$df$status){
         quality_control_stage("accept flags")
       } else if("No code applied" %in% selection$df$code){
         quality_control_stage("revise codes")
       } else{
         quality_control_stage("update annotations")
-      }  
+      }
     }
   })
-  
+
   ## ... Accept flags ####
   # If a user accepts flags, status column in flag dataframe is updated
   observeEvent(input$accept_flags,{
-    
+
     in_progress_qc$flags <- qc_output$flags %>%
       mutate(status = case_when(
         ID %in% selection$df$ID &
@@ -536,18 +485,18 @@ function(input, output, session) {
           status == "Not evaluated" ~ "Approved",
         T ~ status
       ))
-    
+
     quality_control_stage("revise codes")
-    
+
   })
-  
+
   ## ... Reject and revise flags ####
   # If a user accepts rejects flags, change UI to allow for new selection
   observeEvent(input$reject_flags, {
     quality_control_stage("revise flags")
-    
+
   })
-  
+
   observeEvent(input$confirm_revisions,{
     in_progress_qc$flags <- qc_output$flags %>%
       mutate(status = case_when(
@@ -561,102 +510,104 @@ function(input, output, session) {
           sensor == sensor_flag() ~ input$revise_flags,
         T ~ flag
       ))
-    
+
     quality_control_stage("revise codes")
-    
+
   })
-  
+
   ## ... Confirm Codes ####
   observeEvent(input$confirm_codes, {
-    
+
     qc_output$flags <- in_progress_qc$flags
-    
+
     selected_codes <- c(input$sensor_code_selection, input$comment_code_selection)
-    
+
     revised_codes <- data.frame()
     for(selected_code in selected_codes){
       revised_codes <- selection$df %>%
         select(ID) %>%
         mutate(sensor = sensor_flag(),
-               code = selected_code) %>%
+               code = selected_code,
+               ID = as.character(ID)) %>%
         bind_rows(revised_codes)
     }
-    
+
     qc_output$codes <- qc_output$codes %>%
       filter(!(ID %in% selection$df$ID & sensor == sensor_flag())) %>%
       bind_rows(revised_codes)
+
+    runjs("Shiny.setInputValue('plotly_selected-A', null);")
     
-    runjs("Shiny.setInputValue('plotly_selected-A', null);")    
   })
-  
+
   observeEvent(input$skip_revising_codes, {
-    
+
     qc_output$flags <- in_progress_qc$flags
-    runjs("Shiny.setInputValue('plotly_selected-A', null);")  
-    
+    runjs("Shiny.setInputValue('plotly_selected-A', null);")
+
     reset_plot_status(
       reset_plot_status() + 1
     )
-    
+
   })
-  
+
   ## ... revise annotations ####
   observeEvent(input$revise_flags_button, {
     quality_control_stage("revise flags")
-    
+
   })
-  
+
   observeEvent(input$revise_codes_button,{
-    
-    in_progress_qc$flags <- qc_output$flags 
-    
+
+    in_progress_qc$flags <- qc_output$flags
+
     quality_control_stage("revise codes")
-    
+
   })
-  
+
   observeEvent(input$cancel_selection, {
-    
-    runjs("Shiny.setInputValue('plotly_selected-A', null);")  
-    
+
+    runjs("Shiny.setInputValue('plotly_selected-A', null);")
+
     reset_plot_status(
       reset_plot_status() + 1
     )
-    
+
   })
-  
+
   output$quality_control_box <- renderUI({
     getQualityControlUI()
   })
-  
-  
-  
-  
-  output$table_selected_points <- renderDataTable({
-    
-    req(input$parameter_qc)
-    
-    # By default, the table will show the timestamp, the selected QAQC parameter, and the QC numeric flag
-    data_subset <- current_data$df %>%
-      select(timestamp, input$parameter_qc, unname(sensor_vector_l1[input$sensor_qc]))
-    
-    brush_subset <- event_data("plotly_selected")
-    
-    if (!is.null(brush_subset)){
-      # brush_subset <- brush_subset %>%
-      #   mutate(key = ymd_hms(key))
-      
-      datatable(
-        data_subset %>%
-          filter(ID %in% brush_subset$key)
-      )
-    } else {
-      datatable(data_subset)
-    }
-    
-  })
-  
+
+
+
+
+  # output$table_selected_points <- renderDataTable({
+  #
+  #   req(input$parameter_qc)
+  #
+  #   # By default, the table will show the timestamp, the selected QAQC parameter, and the QC numeric flag
+  #   data_subset <- current_data$df %>%
+  #     select(timestamp, input$parameter_qc, unname(sensor_vector_l1[input$sensor_qc]))
+  #
+  #   brush_subset <- event_data("plotly_selected")
+  #
+  #   if (!is.null(brush_subset)){
+  #     # brush_subset <- brush_subset %>%
+  #     #   mutate(key = ymd_hms(key))
+  #
+  #     datatable(
+  #       data_subset %>%
+  #         filter(ID %in% brush_subset$key)
+  #     )
+  #   } else {
+  #     datatable(data_subset)
+  #   }
+  #
+  # })
+
   output$table_summary_qc <- renderDataTable({
-    
+
     if(nrow(qc_output$codes) > 0){
       summary <- qc_output$codes %>%
         #mutate(timestamp = ymd_hms(timestamp)) %>%
@@ -664,36 +615,36 @@ function(input, output, session) {
         summarize(number_points_flagged = n())#,
                   #from = min(timestamp),
                   #to = max(timestamp))
-      
+
       datatable(summary)
     }
   })
-  
+
   ## Remove QC flags ####
   output$remove_codes <- renderUI({
     selectInput("select_remove_codes", "Select QC codes to remove",
                 choices = unique(qc_output$codes$code), multiple = TRUE)
-    
+
   })
-  
+
   observeEvent(input$confirm_removal,{
-    
+
     if(!is.null(input$select_remove_codes)){
       points_to_remove <- qc_output$codes %>%
-        filter(code %in% input$select_remove_codes) 
-      
+        filter(code %in% input$select_remove_codes)
+
       qc_output$codes <- qc_output$codes %>%
         filter(!(code %in% input$select_remove_codes))
-      
+
     }
   })
-  
+
   ## Submit annotations ####
   observeEvent(input$submit_codes, {
 
     flags_filename <- gsub("L1-data", "L2-flags", current_file())
     codes_filename <- gsub("L1-data", "L2-codes", current_file())
-    
+
     setwd(tempdir())
 
     output_flags <- qc_output$flags %>%
@@ -714,22 +665,22 @@ function(input, output, session) {
         status == "Approved" ~ "1",
         T ~ "-2"
       ))
-    
+
     # Upload flags even if no changes made
     write_csv(output_flags, flags_filename)
-    
+
     drop_upload(flags_filename,
                 path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_flags")
-    
+
     if(nrow(qc_output$codes) > 0){
-      
+
       write_csv(qc_output$codes, codes_filename)
-      
+
       drop_upload(codes_filename,
                   path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_codes")
-      
+
     }
-    
+
     showModal(modalDialog(
       title = "Annotations saved",
       div("Your annotations have been saved."),
