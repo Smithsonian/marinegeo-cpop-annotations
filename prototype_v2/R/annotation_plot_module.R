@@ -166,7 +166,7 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
         
         plot_ly(plot, x = ~timestamp, y = ~get(plotted_parameter),
                 color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively
-                key=~ID, type = "scatter", legendgroup = ~get(label_type()), showlegend = F) %>%
+                key=~plot_id, type = "scatter", legendgroup = ~get(label_type()), showlegend = F) %>%
           layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
                  #y = -.6),
                  yaxis = list(title = plotted_parameter),
@@ -178,16 +178,16 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
       if(length(plot_objects) > 0){
         
         dummy_df <- setNames(data.frame(col1 = getPlotLabels()), label_type())
-        dummy_df$x <- plotting_data()[[1]]$timestamp[1]
+        dummy_df$x <- start_date() - days(30)
         dummy_df$y <- unlist(plotting_data()[[1]][colnames(plotting_data()[[1]])[3]])[1]
-        dummy_df$ID <- plotting_data()[[1]]$ID[1]
+        dummy_df$plot_id <- plotting_data()[[1]]$plot_id[1]
         
         plot_objects[[1]] <- plot_objects[[1]] %>%
           add_trace(data = dummy_df, x = ~x, y = ~y, color = ~get(label_type()), type = "scatter",
                     showlegend = TRUE, legendgroup = ~get(label_type()), hoverinfo = 'none')
         
         if(length(plot_objects) > 1){
-          subplot(plot_objects, nrows = 2, shareX = T, titleY = TRUE)
+          subplot(plot_objects, nrows = 2, shareX = T, titleY = TRUE, margin = .1)
         } else {
           plot_objects[[1]]
         }

@@ -1,20 +1,20 @@
-sensor,parameter,sensor_numeric_flag,,source
-Conductivity,Cond_microS_cm,Conductivity_Temp_0,,Tower data
-Conductivity,Sal_psu,Conductivity_Temp_0,,Tower data
-Conductivity,Temp_C,Conductivity_Temp_0,,Tower data
-Conductivity,WaterTemp,Conductivity_Temp_0,,Loggernet
-Conductivity,Cond,Conductivity_Temp_0,,Loggernet
-Conductivity,Salinity,Conductivity_Temp_0,,Loggernet
-Depth,Depth_m,Depth_0,,Tower data
-Depth,Depth,Depth_0,,Loggernet
-EXO2 Sonde,Battery_V,EXO2_Sonde_0,,Tower data
-EXO2 Sonde,Cable_Pwr_V,EXO2_Sonde_0,,Tower data
-Fluorescent Dissolved Organic Matter,fDOM_RFU,fDOM_0,,Tower data
-Fluorescent Dissolved Organic Matter,fDom,fDOM_0,,Loggernet
-Optical Dissolved Oxygen,ODO_mg_L,Optical_DO_0,,Tower data
-pH,pH,pH_0,,Tower data
-Total Algae,Chlorophyll_microg_L,Total_Algae_BGA_PE_0,,Tower data
-Total Algae,MChlorophyll,Total_Algae_BGA_PE_0,,Loggernet
-Turbidity,Turbidity_FNU,Turbidity_0,,Tower data
-Turbidity,Turbidity,Turbidity_0,,Loggernet
-Wiper,Wiper_Position_volt,Wiper_0,,Tower data
+sensor,parameter,sensor_numeric_flag,,source,sensor_abbreviation
+Conductivity,Cond_microS_cm,Conductivity_Temp_0,,Tower data,ct
+Conductivity,Sal_psu,Conductivity_Temp_0,,Tower data,ct
+Conductivity,Temp_C,Conductivity_Temp_0,,Tower data,ct
+Conductivity,WaterTemp,Conductivity_Temp_0,,Loggernet,ct
+Conductivity,Cond,Conductivity_Temp_0,,Loggernet,ct
+Conductivity,Salinity,Conductivity_Temp_0,,Loggernet,ct
+Depth,Depth_m,Depth_0,,Tower data,de
+Depth,Depth,Depth_0,,Loggernet,de
+EXO2 Sonde,Battery_V,EXO2_Sonde_0,,Tower data,ex
+EXO2 Sonde,Cable_Pwr_V,EXO2_Sonde_0,,Tower data,ex
+Fluorescent Dissolved Organic Matter,fDOM_RFU,fDOM_0,,Tower data,fd
+Fluorescent Dissolved Organic Matter,fDom,fDOM_0,,Loggernet,fd
+Optical Dissolved Oxygen,ODO_mg_L,Optical_DO_0,,Tower data,op
+pH,pH,pH_0,,Tower data,ph
+Total Algae,Chlorophyll_microg_L,Total_Algae_BGA_PE_0,,Tower data,ta
+Total Algae,MChlorophyll,Total_Algae_BGA_PE_0,,Loggernet,ta
+Turbidity,Turbidity_FNU,Turbidity_0,,Tower data,tu
+Turbidity,Turbidity,Turbidity_0,,Loggernet,tu
+Wiper,Wiper_Position_volt,Wiper_0,,Tower data,wi

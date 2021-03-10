@@ -37,9 +37,8 @@ key <- as_tibble(bundled_directory) %>%
 
 sensor_parameters_df <- read_csv("./data/sensor_parameters.csv")
 
-qc_codes <- read_csv("./data/qc_technician_codes.csv") %>%
+qc_codes <- read_csv("./data/L2_sensor_codes.csv") %>%
   mutate(select_inputs = paste(code, description, sep=" - ")) %>%
-  filter(category == "water quality") %>%
   mutate(code_type = case_when(
     substr(code, 1, 1) == "C" ~ "comment",
     substr(code, 1, 1) == "S" ~ "sensor",
@@ -47,20 +46,17 @@ qc_codes <- read_csv("./data/qc_technician_codes.csv") %>%
     T ~ NA_character_
   ))
 
-qc_code_descriptions <- qc_codes$description
-names(qc_code_descriptions) <- qc_codes$code
-
 sensor_codes_df <- qc_codes %>%
   filter(code_type == "sensor" | code_type == "general")
 
 sensor_codes <- sensor_codes_df$code
-names(sensor_codes) <- sensor_codes_df$description
+names(sensor_codes) <- sensor_codes_df$select_inputs
 
 comment_codes_df <- qc_codes %>%
   filter(code_type == "comment")
 
 comment_codes <- comment_codes_df$code
-names(comment_codes) <- comment_codes_df$description
+names(comment_codes) <- comment_codes_df$select_inputs
 
 sensor_vector_l1 <- c("Turbidity" = "tu",
                       "Conductivity" = "ct",

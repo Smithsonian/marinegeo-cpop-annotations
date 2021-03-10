@@ -9,11 +9,11 @@ header <- dashboardHeader(
 sidebar <- dashboardSidebar(
   sidebarMenu(
     id = "tabs",
-    menuItem("About", tabName = "about", icon = icon("bullhorn")),
-    menuItem("Submit data", tabName = "submit_data", icon = icon("file-upload")),
+    #menuItem("About", tabName = "about", icon = icon("bullhorn")),
+    #menuItem("Submit data", tabName = "submit_data", icon = icon("file-upload")),
     menuItem("Load data", tabName = "load_data", icon = icon("database")),
     menuItem("Annotate data", tabName = "annotate_data", icon = icon("chart-line")),
-    menuItem("View tabular data", tabName = "tabular_data", icon = icon("table")),
+    #menuItem("View tabular data", tabName = "tabular_data", icon = icon("table")),
     menuItem("Review annotations", tabName = "review", icon = icon("clipboard-check")),
     
     uiOutput("data_info_box")
@@ -218,12 +218,6 @@ body <- dashboardBody(
                          uiOutput("quality_control_box"),
                          hr(),
                          annotation_plot_UI("plot"),
-                         
-                         verbatimTextOutput("click"),
-                         verbatimTextOutput("brush")
-                         
-                         #plotlyOutput("plot_qc")
-                         
                      )
               )
             )
