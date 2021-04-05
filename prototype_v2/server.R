@@ -299,7 +299,7 @@ function(input, output, session) {
   })
   
   selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status)
-
+  
   ## Apply QC logic ####
 
   quality_control_stage <- reactiveVal(NA)

@@ -87,7 +87,7 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
         merge(code_timestamps(), by="ID", all.x=TRUE) %>%
         # Provide values to missing data
         mutate(!!input$parameter_qc := case_when(
-          flag == "Missing Data" ~ parameter_mean(),
+          flag == -2 ~ parameter_mean(),
           T ~ .data[[input$parameter_qc]]
         )) %>%
         mutate(code = case_when(
@@ -147,22 +147,27 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
       
       labels <- unname(factor(raw_labels, levels = c(as.character(raw_labels))))
       
+      return(labels)
     })
     
     output$plot_qc <- renderPlotly({
       
       reset_plot_status()
       
+      # Create a plot for each df in the plotting data list
       plot_objects <- lapply(plotting_data(), function(i){
         
         plotted_parameter <- colnames(i)[3]
         
+        # Modifies column, either flag or code, depending on label type input
+        # Transforms to a leveled factor, alphabetical
         plot <- i %>%
           mutate(!!label_type() := factor(.data[[label_type()]], levels = as.character(getPlotLabels())))
         
         plot_ly(plot, x = ~timestamp, y = ~get(plotted_parameter),
                 color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively
-                key=~plot_id, type = "scatter", legendgroup = ~get(label_type()), showlegend = F) %>%
+                key=~plot_id, type = "scatter", legendgroup = ~get(label_type()),  showlegend = T) %>%
+          
           layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
                  #y = -.6),
                  yaxis = list(title = plotted_parameter),
@@ -175,19 +180,9 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
       
       if(length(plot_objects) > 0){
         
-        dummy_df <- setNames(data.frame(col1 = getPlotLabels()), label_type())
-        dummy_df$x <- start_date() - days(30)
-        dummy_df$y <- unlist(plotting_data()[[1]][colnames(plotting_data()[[1]])[3]])[1]
-        dummy_df$plot_id <- plotting_data()[[1]]$plot_id[1]
-        
-        plot_objects[[1]] <- plot_objects[[1]] %>%
-          add_trace(data = dummy_df, x = ~x, y = ~y, color = ~get(label_type()), type = "scatter",
-                    showlegend = TRUE, legendgroup = ~get(label_type()), hoverinfo = 'none') %>%
-          layout(showlegend = T)
-        
         if(length(plot_objects) > 1){
           subplot(plot_objects, nrows = 2, shareX = T, titleY = TRUE, margin = .1) 
-            
+          
         } else {
           plot_objects[[1]]  
         }
@@ -198,6 +193,7 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
     reactive({
       return(event_data("plotly_selected"))
     })
+    
   })
 }
 

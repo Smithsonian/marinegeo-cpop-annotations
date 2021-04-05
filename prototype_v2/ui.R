@@ -215,8 +215,7 @@ body <- dashboardBody(
                          # Accept, reject, and/or revise flags
                          uiOutput("quality_control_box"),
                          hr(),
-                         annotation_plot_UI("plot"),
-                         verbatimTextOutput("info")                    
+                         annotation_plot_UI("plot")
                     )
               )
             )
