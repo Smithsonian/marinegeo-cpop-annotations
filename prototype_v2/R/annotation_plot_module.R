@@ -92,7 +92,7 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
         )) %>%
         mutate(code = case_when(
           is.na(code) &
-            flag %in% c(-5, -4, -3, 1) ~ "Code required",
+            flag %in% c(-5, -4, -3, -2, 1) ~ "Code required",
           is.na(code) ~ "Code not required",
           T ~ code
         )) %>%
@@ -182,7 +182,8 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
         
         plot_objects[[1]] <- plot_objects[[1]] %>%
           add_trace(data = dummy_df, x = ~x, y = ~y, color = ~get(label_type()), type = "scatter",
-                    showlegend = TRUE, legendgroup = ~get(label_type()), hoverinfo = 'none')
+                    showlegend = TRUE, legendgroup = ~get(label_type()), hoverinfo = 'none') %>%
+          layout(showlegend = T)
         
         if(length(plot_objects) > 1){
           subplot(plot_objects, nrows = 2, shareX = T, titleY = TRUE, margin = .1) 
