@@ -68,19 +68,22 @@ sensor_vector_l1 <- c("Turbidity" = "tu",
                       "EXO2 Sonde" = "ex",
                       "Total Algae" = "ta")
 
-qc_flags <- c("-5" = "Outside high range",
-              "-4" = "Outside low range",
-              "-3" = "Data rejected due to QAQC",
-              "-2" = "Missing Data",
-              "-1" = "Optional parameter, not collected",
-              "0" = "Passed L1 QC",
-              "1" = "Suspect Data")
+# qc_flags <- c("-5 (Outside high range)" = -5,
+#               "-4 (Outside low range)" = -4,
+#               "-3 (Data rejected due to QAQC)" = -3,
+#               "-2 (Missing Data)" = -2,
+#               "-1 (Optional parameter, not collected)" = -1,
+#               "0 (Passed L1 QC)" = 0,
+#               "1 (Suspect Data)" = 1)
+
+qc_flags <- c("-3 (Data rejected due to QAQC)" = -3,
+                            "1 (Suspect Data)" = 1)
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)
 
 # Get filenames of annotations
-annotation_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/", recursive = T) 
+annotation_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/L2_quality_control/", recursive = T) 
 
 # If there are no annotations in the directory a data frame with no rows or columns is returned. 
 # The app must have a df with a column "name"

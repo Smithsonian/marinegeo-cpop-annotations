@@ -12,7 +12,7 @@ function(input, output, session) {
   qc_output <- reactiveValues(flags = tibble(ID = as.character(NA),
                                              #timestamp = as.POSIXct(NA),
                                              sensor = as.character(NA),
-                                             status = as.character(NA),
+                                             #status = as.character(NA),
                                              flag = as.character(NA),
                                              .rows = 0),
                               codes = tibble(ID = as.character(NA),
@@ -21,27 +21,7 @@ function(input, output, session) {
                                              code = as.character(NA),
                                              .rows = 0))
   
-  # qc_output <- reactiveValues(flags = dat_flags,
-  #                             codes = tibble(ID = as.numeric(NA),
-  #                                            #timestamp = as.POSIXct(NA), 
-  #                                            sensor = as.character(NA),
-  #                                            code = as.character(NA),
-  #                                            .rows = 0))
-  
-  # current_site <- reactiveVal("PAN-BDT")
-  # current_date_range <- reactiveVal(paste(strftime(min(dat$timestamp),
-  #                                                  '%Y-%m-%d'),
-  #                                         strftime(max(dat$timestamp), 
-  #                                                  '%Y-%m-%d'),
-  #                                         sep = " to "))
-  
-  # Set min and max for start date input
-  #current_min_date <- reactiveVal(min(dat$timestamp))
-  #current_max_date <- reactiveVal(max(dat$timestamp))
-  
-  #sensor_parameters <- reactiveValues(plot_1 = "", plot_2 = "") # Holds parameters available for currently selected sensor in plot 1 and 2
 
-  #parameter_mean <- reactiveVal(NA) # Mean of currently selected parameter to fill in for missing data
   current_file <- reactiveVal(NA) # Filename for data currently loaded
   current_site <- reactiveVal(NA) # Site for data currently loaded
   current_date_range <- reactiveVal(NA) # Date range for data currently loaded
@@ -138,6 +118,9 @@ function(input, output, session) {
   # ## Datatable output for import ####
   output$key <- renderDataTable({
     datatable(data_inventory(),
+              options = list(
+                pageLength = 5
+              ),
               selection = "single")
   })
   
@@ -155,6 +138,18 @@ function(input, output, session) {
     
     if(length(selected_file) != 0){
       
+      qc_output$flags = tibble(ID = as.character(NA),
+                               #timestamp = as.POSIXct(NA),
+                               sensor = as.character(NA),
+                               #status = as.character(NA),
+                               flag = as.character(NA),
+                               .rows = 0)
+      qc_output$codes = tibble(ID = as.character(NA),
+                               #timestamp = as.POSIXct(NA),
+                               sensor = as.character(NA),
+                               code = as.character(NA),
+                               .rows = 0)
+  
       current_file(selected_file)
       
       # Read in CSV given filepath
@@ -166,6 +161,12 @@ function(input, output, session) {
         select(-timestamp) %>%
         rename(timestamp = timestamp3) %>%
         mutate(timestamp = ymd_hms(timestamp)) 
+      
+      current_data$df <- as.data.frame(lapply(current_data$df, function(x){
+        if(is.integer(x)){
+          as.numeric(x)
+        } else {x}
+      }))
       
       # Check if current filename has previous annotations and read them in
       data_identifier <- gsub("_L1-data.csv", "", current_file())
@@ -179,7 +180,7 @@ function(input, output, session) {
         if(any(grepl("L2-codes.csv", annotation_directory$name))){
           codes_filename <- gsub("L1-data", "L2-codes", current_file())
           
-          qc_output$codes <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_codes/",
+          qc_output$codes <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/L2_quality_control/L2_codes/",
                                                   codes_filename)) %>%
             mutate_all(as.character)# %>%
             #mutate(timestamp = ymd_hms(timestamp))
@@ -187,44 +188,44 @@ function(input, output, session) {
         
         flags_filename <- gsub("L1-data", "L2-flags", current_file())
         
-        qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_flags/",
-                                                flags_filename)) %>%
-          mutate_all(as.character) %>%
-          mutate(status = case_when(
-            status == "-1" ~ "Not evaluated",
-            status == "0" ~ "Revised", 
-            status == "1" ~ "Approved",
-            T ~ "-2"
-          ),
-          flag = case_when(
-            flag == "-5" ~ "Outside high range",
-            flag == "-4" ~ "Outside low range",
-            flag == "-3" ~ "Data rejected due to QAQC",
-            flag == "-2" ~ "Missing Data",
-            flag == "-1" ~ "Optional parameter, not collected",
-            flag == "0" ~ "Passed L1 QC",
-            flag == "1" ~ "Suspect Data",
-            flag == "2" ~ "Reserved for Future Use",
-            T ~ "Other Flags"
-          ))
+        qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/L2_quality_control/L2_flags/",
+                                                flags_filename)) #%>%
+          #mutate_all(as.character) # %>%
+          # mutate(status = case_when(
+          #   status == "-1" ~ "Not evaluated",
+          #   status == "0" ~ "Revised", 
+          #   status == "1" ~ "Approved",
+          #   T ~ "-2"
+          # ))#,
+          # flag = case_when(
+          #   flag == "-5" ~ "Outside high range",
+          #   flag == "-4" ~ "Outside low range",
+          #   flag == "-3" ~ "Data rejected due to QAQC",
+          #   flag == "-2" ~ "Missing Data",
+          #   flag == "-1" ~ "Optional parameter, not collected",
+          #   flag == "0" ~ "Passed L1 QC",
+          #   flag == "1" ~ "Suspect Data",
+          #   flag == "2" ~ "Reserved for Future Use",
+          #   T ~ "Other Flags"
+          # ))
         
       } else {
         # Read in the L1 flags
         qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/L1_DATA_FLAGS/", 
-                                                   gsub("-data", "-flags", selected_file))) %>%
-          mutate_all(as.character) %>%
-          mutate(status = "Not evaluated", # Whether L1 flag has been accepted, rejected, or needs to be evaluated
-                 flag = case_when(
-                   flag == "-5" ~ "Outside high range",
-                   flag == "-4" ~ "Outside low range",
-                   flag == "-3" ~ "Data rejected due to QAQC",
-                   flag == "-2" ~ "Missing Data",
-                   flag == "-1" ~ "Optional parameter, not collected",
-                   flag == "0" ~ "Passed L1 QC",
-                   flag == "1" ~ "Suspect Data",
-                   flag == "2" ~ "Reserved for Future Use",
-                   T ~ "Other Flags"
-                 ))
+                                                   gsub("-data", "-flags", selected_file))) # %>%
+         # mutate_all(as.character) # %>%
+          #mutate(status = "Not evaluated")#, # Whether L1 flag has been accepted, rejected, or needs to be evaluated
+                 # flag = case_when(
+                 #   flag == "-5" ~ "Outside high range",
+                 #   flag == "-4" ~ "Outside low range",
+                 #   flag == "-3" ~ "Data rejected due to QAQC",
+                 #   flag == "-2" ~ "Missing Data",
+                 #   flag == "-1" ~ "Optional parameter, not collected",
+                 #   flag == "0" ~ "Passed L1 QC",
+                 #   flag == "1" ~ "Suspect Data",
+                 #   flag == "2" ~ "Reserved for Future Use",
+                 #   T ~ "Other Flags"
+                 #))
 
       }
       
@@ -297,12 +298,12 @@ function(input, output, session) {
     return(dat_list)
   })
   
-  annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max)
+  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status)
 
   ## Apply QC logic ####
 
   quality_control_stage <- reactiveVal(NA)
-  n_flags_unapproved <- reactiveVal(NA)
+  n_flags_unrevised <- reactiveVal(NA)
   n_codes_unassigned <- reactiveVal(NA)
   total_points_in_selection <- reactiveVal(NA)
   selection <- reactiveValues(df = tibble())
@@ -353,7 +354,7 @@ function(input, output, session) {
         ),
         tags$h3("Quality Control Instructions"), tags$br(),
         tags$ol(
-          tags$li("Select a sensor and parameter below to plot data"),
+          tags$li("Select a sensor and parameter above to plot data"),
           tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
           tags$li("Flags have been algorithmically assigned to each point and must be either accepted or rejected. If they are rejected, you must provide an updated flag."),
           tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
@@ -372,29 +373,28 @@ function(input, output, session) {
           tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
         )
       )
-    } else if(quality_control_stage() == "accept flags"){
+    } else if(quality_control_stage() == "revise_out_of_bounds"){
       div(id = "accept_flag_div",
-          tags$h3("Approve or Revise Initial Flags"),
-          tags$b(paste(n_flags_unapproved(), "of", total_points_in_selection(), "selected observations have pending flags. ", sep = " ")),
-          "Approve or reassign flags for these points. Once you select \"reassign\", you will select an updated flag.",
+          tags$h3("Reassign Primary Flags"),
+          tags$b(paste(n_flags_unrevised(), "of", total_points_in_selection(), "selected observations have been flagged as out of bounds. ", sep = " ")),
+          "Flag these pointed \"rejected\" or \"suspect\".",
           tags$br(), tags$br(),
 
           splitLayout(
             cellWidths = "50%",
             div(
-              actionButton("accept_flags", "Accept flags", class = "btn-primary"),
-              actionButton("reject_flags", "Reassign flags", class = "btn-danger"),
-
-              tags$br(), tags$br(),
+              selectInput("revise_flags", "Select updated flag",
+                          choices = qc_flags),
+              actionButton("confirm_revisions", "Confirm revised flags", class = "btn-primary"),
               actionButton("cancel_selection", "Cancel selection")
             ),
             div()),
 
           tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}
-                                    #reject_flags{color:white} #accept_flags{color:white}")))
+                                    #confirm_revisions{color:white}")))
 
       )
-    } else if (quality_control_stage() == "revise flags"){
+    } else if (quality_control_stage() == "revise_secondary_flags"){
       div(
         tags$h3("Revise Quality Control Flag"),
 
@@ -402,7 +402,7 @@ function(input, output, session) {
           cellWidths = "50%",
           div(
             selectInput("revise_flags", "Select updated flag",
-                        choices = unname(qc_flags)),
+                        choices = qc_flags),
             actionButton("confirm_revisions", "Confirm revised flags", class = "btn-primary"),
             actionButton("cancel_selection", "Cancel selection")
           ),
@@ -416,7 +416,7 @@ function(input, output, session) {
     } else if(quality_control_stage() == "revise codes"){
       div(id = "revise_codes_div",
           tags$h3("Add or Revise Quality Control Codes"),
-          tags$b(paste(n_codes_unassigned(), "of", total_points_in_selection(), "selected observations have not been assigned a code. ", sep = " ")),
+          tags$b(paste(n_codes_unassigned(), "of", total_points_in_selection(), "selected observations require assigned codes. ", sep = " ")),
           "Assign a general or sensor code for ", tags$b("all"), " selected points. You may also select one or more comment codes.",
           tags$br(), tags$br(),
 
@@ -460,54 +460,55 @@ function(input, output, session) {
 
     if(is.data.frame(event_data("plotly_selected"))){
       selection$df <- getPlotlySelection()
-      n_flags_unapproved(length(selection$df$status[selection$df$status == "Not evaluated"]))
-      n_codes_unassigned(length(selection$df$code[selection$df$code == "No code applied"]))
+      n_flags_unrevised(length(selection$df$flag[selection$df$flag %in% c(-4, -5)]))
+      n_codes_unassigned(length(selection$df$code[selection$df$code == "Code required"]))
       total_points_in_selection(nrow(selection$df))
 
-      if("Not evaluated" %in% selection$df$status){
-        quality_control_stage("accept flags")
-      } else if("No code applied" %in% selection$df$code){
+      if(n_flags_unrevised() > 0){
+        quality_control_stage("revise_out_of_bounds")
+      } else if(all(selection$df$flag == -2)){
         quality_control_stage("revise codes")
       } else{
-        quality_control_stage("update annotations")
+        quality_control_stage("revise_secondary_flags")
       }
     }
   })
 
   ## ... Accept flags ####
   # If a user accepts flags, status column in flag dataframe is updated
-  observeEvent(input$accept_flags,{
-
-    in_progress_qc$flags <- qc_output$flags %>%
-      mutate(status = case_when(
-        ID %in% selection$df$ID &
-          sensor == sensor_flag() &
-          status == "Not evaluated" ~ "Approved",
-        T ~ status
-      ))
-
-    quality_control_stage("revise codes")
-
-  })
+  # observeEvent(input$accept_flags,{
+  # 
+  #   in_progress_qc$flags <- qc_output$flags %>%
+  #     mutate(status = case_when(
+  #       ID %in% selection$df$ID &
+  #         sensor == sensor_flag() &
+  #         status == "Not evaluated" ~ "Approved",
+  #       T ~ status
+  #     ))
+  # 
+  #   quality_control_stage("revise codes")
+  # 
+  # })
 
   ## ... Reject and revise flags ####
   # If a user accepts rejects flags, change UI to allow for new selection
-  observeEvent(input$reject_flags, {
-    quality_control_stage("revise flags")
-
-  })
+  # observeEvent(input$reject_flags, {
+  #   quality_control_stage("revise flags")
+  # 
+  # })
 
   observeEvent(input$confirm_revisions,{
     in_progress_qc$flags <- qc_output$flags %>%
-      mutate(status = case_when(
+      # mutate(status = case_when(
+      #   ID %in% selection$df$ID &
+      #     sensor == sensor_flag() &
+      #     status == "Not evaluated" ~ "Revised",
+      #   T ~ status
+      # ),
+      mutate(flag = case_when(
         ID %in% selection$df$ID &
           sensor == sensor_flag() &
-          status == "Not evaluated" ~ "Revised",
-        T ~ status
-      ),
-      flag = case_when(
-        ID %in% selection$df$ID &
-          sensor == sensor_flag() ~ input$revise_flags,
+          flag != -2 ~ as.integer(input$revise_flags),
         T ~ flag
       ))
 
@@ -568,7 +569,7 @@ function(input, output, session) {
   observeEvent(input$cancel_selection, {
 
     runjs("Shiny.setInputValue('plotly_selected-A', null);")
-
+    
     reset_plot_status(
       reset_plot_status() + 1
     )
@@ -647,37 +648,37 @@ function(input, output, session) {
 
     setwd(tempdir())
 
-    output_flags <- qc_output$flags %>%
-      mutate(flag = case_when(
-        flag == "Outside high range" ~ "-5",
-        flag == "Outside low range" ~ "-4",
-        flag == "Data rejected due to QAQC" ~ "-3",
-        flag == "Missing Data" ~ "-2",
-        flag == "Optional parameter, not collected" ~ "-1",
-        flag == "Passed L1 QC" ~ "0",
-        flag == "Suspect Data" ~ "1",
-        flag == "Reserved for Future Use" ~ "2",
-        T ~ "3"
-      )) %>%
-      mutate(status = case_when(
-        status == "Not evaluated" ~ "-1",
-        status == "Revised" ~ "0",
-        status == "Approved" ~ "1",
-        T ~ "-2"
-      ))
+    output_flags <- qc_output$flags # %>%
+      # mutate(flag = case_when(
+      #   flag == "Outside high range" ~ "-5",
+      #   flag == "Outside low range" ~ "-4",
+      #   flag == "Data rejected due to QAQC" ~ "-3",
+      #   flag == "Missing Data" ~ "-2",
+      #   flag == "Optional parameter, not collected" ~ "-1",
+      #   flag == "Passed L1 QC" ~ "0",
+      #   flag == "Suspect Data" ~ "1",
+      #   flag == "Reserved for Future Use" ~ "2",
+      #   T ~ "3"
+      # )) %>%
+      # mutate(status = case_when(
+      #   status == "Not evaluated" ~ "-1",
+      #   status == "Revised" ~ "0",
+      #   status == "Approved" ~ "1",
+      #   T ~ "-2"
+      # ))
 
     # Upload flags even if no changes made
     write_csv(output_flags, flags_filename)
 
     drop_upload(flags_filename,
-                path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_flags")
+                path = "Marine_GEO_CPOP_PROCESSING/L2_quality_control/L2_flags")
 
     if(nrow(qc_output$codes) > 0){
 
       write_csv(qc_output$codes, codes_filename)
 
       drop_upload(codes_filename,
-                  path = "Marine_GEO_CPOP_PROCESSING/STRI_DATA_PROCESSING/technician_portal_output/L2_codes")
+                  path = "Marine_GEO_CPOP_PROCESSING/L2_quality_control/L2_codes")
 
     }
 

@@ -137,7 +137,7 @@ body <- dashboardBody(
                          title = "Select and load data",
                          
                          div(
-                           tags$b("Click a row in the table and then \"Load Data\" to load the data into the application")
+                           tags$b("Click a row in the table and then \"Load data\" to load the data into the application")
                          ),
                          
                          tags$br(), tags$br(),
@@ -191,8 +191,6 @@ body <- dashboardBody(
                                selectInput("view_mode", "Show:",
                                            choices = c("All points",
                                                        "Flags that require review",
-                                                       "Only accepted flags",
-                                                       "Only rejected flags",
                                                        "Points that require codes"))
                            ),
                            div(class = "plot_controls",
@@ -218,7 +216,8 @@ body <- dashboardBody(
                          uiOutput("quality_control_box"),
                          hr(),
                          annotation_plot_UI("plot"),
-                     )
+                         verbatimTextOutput("info")                    
+                    )
               )
             )
     ),

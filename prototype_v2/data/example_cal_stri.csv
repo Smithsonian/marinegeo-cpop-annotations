@@ -1,0 +1,222 @@
+KorEXO Calibration File Export
+
+Last Calibration Time=,5/21/2018 6:03:09 PM
+Calibration Start Time=,5/22/2018 7:39:23 PM
+Calibration End Time=,5/22/2018 7:42:59 PM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14G102173
+Instrument Serial Number=,14G102173
+Instrument Firmware Version=,1.0.18
+Parameter Type=,Chlorophyll (µg/L)
+Sensor Type=,TAL-PE
+Sensor Serial Number=,16A101262
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+
+[Cal Point 1]
+Standard=,0.00 µg/L
+Type=,Pure Water
+Manufacturer=,
+Lot Number=,
+Pre Calibration Value=,0.08 µg/L
+Post Calibration Value=,0.01 µg/L
+Raw Value=,-0.34 µg/L
+Temperature=,22.160 °C
+Stability Achieved=,Yes
+
+[Cal Point 2]
+Standard=,66.00 µg/L
+Type=,Rhod WT
+Manufacturer=,
+Lot Number=,
+Pre Calibration Value=,66.28 µg/L
+Post Calibration Value=,66.02 µg/L
+Raw Value=,13.01 µg/L
+Temperature=,22.082 °C
+Stability Achieved=,Yes
+
+----------
+
+Last Calibration Time=,5/21/2018 5:52:10 PM
+Calibration Start Time=,5/22/2018 7:30:43 PM
+Calibration End Time=,5/22/2018 7:33:31 PM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14G102173
+Instrument Serial Number=,14G102173
+Instrument Firmware Version=,1.0.18
+Parameter Type=,Phycoerythrin (µg/L)
+Sensor Type=,TAL-PE
+Sensor Serial Number=,16A101262
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+
+[Cal Point 1]
+Standard=,0.00 µg/L
+Type=,Pure Water
+Manufacturer=,
+Lot Number=,
+Pre Calibration Value=,-1.04 µg/L
+Post Calibration Value=,0.02 µg/L
+Raw Value=,0.17 µg/L
+Temperature=,21.994 °C
+Stability Achieved=,Yes
+
+[Cal Point 2]
+Standard=,126.00 µg/L
+Type=,Rhod WT
+Manufacturer=,
+Lot Number=,
+Pre Calibration Value=,128.01 µg/L
+Post Calibration Value=,126.00 µg/L
+Raw Value=,40.87 µg/L
+Temperature=,22.072 °C
+Stability Achieved=,Yes
+
+----------
+
+Last Calibration Time=,5/21/2018 5:04:03 PM
+Calibration Start Time=,5/22/2018 7:17:43 PM
+Calibration End Time=,5/22/2018 7:24:15 PM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14G102173
+Instrument Serial Number=,14G102173
+Instrument Firmware Version=,1.0.18
+Parameter Type=,Turbidity (FNU)
+Sensor Type=,Turbidity
+Sensor Serial Number=,14G102112
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+
+[Cal Point 1]
+Standard=,0.00 FNU
+Type=,Pure Water
+Manufacturer=,
+Lot Number=,
+Pre Calibration Value=,-0.25 FNU
+Post Calibration Value=,-0.01 FNU
+Raw Value=,0.00 FNU
+Temperature=,22.089 °C
+Stability Achieved=,Yes
+
+[Cal Point 2]
+Standard=,124.00 FNU
+Type=,
+Manufacturer=,
+Lot Number=,
+Pre Calibration Value=,124.97 FNU
+Post Calibration Value=,124.05 FNU
+Raw Value=,3.10 FNU
+Temperature=,21.665 °C
+Stability Achieved=,Yes
+
+----------
+
+Last Calibration Time=,5/21/2018 4:41:47 PM
+Calibration Start Time=,5/22/2018 7:11:29 PM
+Calibration End Time=,5/22/2018 7:14:47 PM
+Calibration Status=,Completed
+QC Score=,Warning
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14G102173
+Instrument Serial Number=,14G102173
+Instrument Firmware Version=,1.0.18
+Parameter Type=,pH
+Sensor Type=,pH
+Sensor Serial Number=,14G102042
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+Sensor Module Replacement Date=,<Unknown>
+pH Range 7.00-10.00 Delta Slope=,153.0 mV
+pH Range 7.00-10.00 mV per Decade=,51.00
+
+[Cal Point 1]
+Standard=,7.00 pH
+Type=,YSI pH 7 Buffer
+Manufacturer=,YSI
+Lot Number=,
+Pre Calibration Value=,7.07 pH
+Post Calibration Value=,7.00 pH
+Raw Value=,-46.7 mV
+Temperature=,22.513 °C
+Stability Achieved=,Yes
+
+[Cal Point 2]
+Standard=,10.00 pH
+Type=,YSI pH 10 Buffer
+Manufacturer=,YSI
+Lot Number=,
+Pre Calibration Value=,9.88 pH
+Post Calibration Value=,10.00 pH
+Raw Value=,-199.7 mV
+Temperature=,22.540 °C
+Stability Achieved=,Yes
+
+----------
+
+Last Calibration Time=,5/21/2018 4:30:33 PM
+Calibration Start Time=,5/22/2018 7:05:11 PM
+Calibration End Time=,5/22/2018 7:06:52 PM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14G102173
+Instrument Serial Number=,14G102173
+Instrument Firmware Version=,1.0.18
+Parameter Type=,Sp Cond (µS/cm)
+Sensor Type=,Conductivity
+Sensor Serial Number=,15G101527
+Sensor Firmware Version=,3.0.5
+User ID=,<Unknown>
+Cell Constant=,5.09
+
+[Cal Point 1]
+Standard=,50000.0 µS/cm
+Type=,
+Manufacturer=,
+Lot Number=,
+Pre Calibration Value=,49823.8 µS/cm
+Post Calibration Value=,50002.2 µS/cm
+Raw Value=,50825.6 µS/cm
+Temperature=,21.865 °C
+Stability Achieved=,Yes
+
+----------
+
+Last Calibration Time=,5/21/2018 5:38:03 PM
+Calibration Start Time=,5/22/2018 7:01:43 PM
+Calibration End Time=,5/22/2018 7:02:26 PM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14G102173
+Instrument Serial Number=,14G102173
+Instrument Firmware Version=,1.0.18
+Parameter Type=,DO (% Sat)
+Sensor Type=,DO
+Sensor Serial Number=,15M101993
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+DO Cap Serial Number=,15M100663
+DO Cap Replacement Date=,12/18/2015 10:51:39 AM
+DO Gain=,1.03
+DO mg/L=,<Unknown>
+
+[Cal Point 1]
+Standard=,100.0 % Sat
+Type=,Air-Saturated
+Manufacturer=,
+Lot Number=,
+Pre Calibration Value=,99.7 % Sat
+Post Calibration Value=,99.5 % Sat
+Raw Value=,97.0 % Sat
+Temperature=,22.305 °C
+Stability Achieved=,Yes
+Barometer=,756.6 mmHg
+
+----------

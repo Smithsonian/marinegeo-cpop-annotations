@@ -91,7 +91,9 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
           T ~ .data[[input$parameter_qc]]
         )) %>%
         mutate(code = case_when(
-          is.na(code) ~ "No code applied",
+          is.na(code) &
+            flag %in% c(-5, -4, -3, 1) ~ "Code required",
+          is.na(code) ~ "Code not required",
           T ~ code
         )) %>%
         mutate(code = as.factor(code),
@@ -99,19 +101,11 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
 
       if(view_mode() == "Flags that require review"){
         df <- df %>%
-          filter(status == "Not evaluated")
-
-      } else if(view_mode() == "Only accepted flags"){
-        df <- df %>%
-          filter(status == "Approved")
-
-      } else if(view_mode() == "Only rejected flags"){
-        df <- df %>%
-          filter(status == "Revised")
+          filter(flag %in% c(-4, -5))
 
       } else if(view_mode() == "Points that require codes"){
         df <- df %>%
-          filter(code == "No code applied")
+          filter(code == "Code required")
       }
       
       return(df)
@@ -129,7 +123,7 @@ annotation_plot_UI <- function(id){
   )
 }
 
-annotation_plot_server <- function(id, plotting_data, label_type, start_date, date_range_max){
+annotation_plot_server <- function(id, plotting_data, label_type, start_date, date_range_max, reset_plot_status){
   
   moduleServer(id, function(input, output, session) {
     
@@ -157,6 +151,8 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
     
     output$plot_qc <- renderPlotly({
       
+      reset_plot_status()
+      
       plot_objects <- lapply(plotting_data(), function(i){
         
         plotted_parameter <- colnames(i)[3]
@@ -172,6 +168,8 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
                  yaxis = list(title = plotted_parameter),
                  xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
                               range = c(start_date(), as.Date(date_range_max())))) %>%
+          # event_register("plotly_selected") %>%
+          # highlight(on = 'plotly_selected', opacityDim = getOption("opacityDim", 1)) %>%
           toWebGL()
       })
       
@@ -187,12 +185,17 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
                     showlegend = TRUE, legendgroup = ~get(label_type()), hoverinfo = 'none')
         
         if(length(plot_objects) > 1){
-          subplot(plot_objects, nrows = 2, shareX = T, titleY = TRUE, margin = .1)
+          subplot(plot_objects, nrows = 2, shareX = T, titleY = TRUE, margin = .1) 
+            
         } else {
-          plot_objects[[1]]
+          plot_objects[[1]]  
         }
         
       }
+    })
+    
+    reactive({
+      return(event_data("plotly_selected"))
     })
   })
 }
