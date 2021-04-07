@@ -356,7 +356,7 @@ function(input, output, session) {
         tags$ol(
           tags$li("Select a sensor and parameter above to plot data"),
           tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
-          tags$li("Flags have been algorithmically assigned to each point and must be either accepted or rejected. If they are rejected, you must provide an updated flag."),
+          tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
           tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
         )
       )
@@ -367,17 +367,18 @@ function(input, output, session) {
         ),
         tags$h3("Quality Control Instructions"), tags$br(),
         tags$ol(
-          tags$li("Select a sensor and parameter below to plot data"),
+          tags$li("Select a sensor and parameter above to plot data"),
           tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
-          tags$li("Flags have been algorithmically assigned to each point and must be either accepted or rejected. If they are rejected, you must provide an updated flag."),
+          tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
           tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
         )
       )
     } else if(quality_control_stage() == "revise_out_of_bounds"){
       div(id = "accept_flag_div",
           tags$h3("Reassign Primary Flags"),
-          tags$b(paste(n_flags_unrevised(), "of", total_points_in_selection(), "selected observations have been flagged as out of bounds. ", sep = " ")),
-          "Flag these pointed \"rejected\" or \"suspect\".",
+          tags$b(paste(n_flags_unrevised(), "of", total_points_in_selection(), "selected observations have been flagged as out of bounds (-4 or -5). ", sep = " ")),
+          "Flag these points as \"rejected\" or \"suspect\". ", 
+          "Note that any other points in the selection that are not flagged as -4 or -5 will also be updated with the updated flag you select.",
           tags$br(), tags$br(),
 
           splitLayout(
@@ -416,8 +417,9 @@ function(input, output, session) {
     } else if(quality_control_stage() == "revise codes"){
       div(id = "revise_codes_div",
           tags$h3("Add or Revise Quality Control Codes"),
-          tags$b(paste(n_codes_unassigned(), "of", total_points_in_selection(), "selected observations require assigned codes. ", sep = " ")),
-          "Assign a general or sensor code for ", tags$b("all"), " selected points. You may also select one or more comment codes.",
+          "Assign a general or sensor code for ", tags$b("all"), " selected points. You may also select one or more comment codes. ",
+          "Note that you are allowed to assign codes to any point, regardless of flag. ",
+          "All points that are not flagged as \"0\" require a code to be assigned.", 
           tags$br(), tags$br(),
 
           splitLayout(
@@ -439,7 +441,7 @@ function(input, output, session) {
     } else if(quality_control_stage() == "update annotations"){
       div(id = "update_annotations_div",
           tags$h3("Update Quality Control Flags and/or Codes"),
-          "All selected observations have confirmed flags and been assigned quality control codes. You may revise either. ",
+          "All selected observations have up-to-date flags and do not require codes. You may revise either. ",
           "If you revise flags, you will be given the option to revise the codes.",
           tags$br(), tags$br(),
 
