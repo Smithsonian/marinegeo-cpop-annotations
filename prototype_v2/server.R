@@ -158,8 +158,8 @@ function(input, output, session) {
       
       # Convert timestamp to POSIXct
       current_data$df <- current_data$df %>%
-        select(-timestamp) %>%
-        rename(timestamp = timestamp3) %>%
+        #select(-timestamp) %>%
+        #rename(timestamp = timestamp3) %>%
         mutate(timestamp = ymd_hms(timestamp)) 
       
       current_data$df <- as.data.frame(lapply(current_data$df, function(x){
