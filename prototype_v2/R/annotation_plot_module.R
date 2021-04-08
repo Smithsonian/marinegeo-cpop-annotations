@@ -149,7 +149,7 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
       
       return(labels)
     })
-    
+
     output$plot_qc <- renderPlotly({
       
       reset_plot_status()
@@ -166,10 +166,10 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
         
         plot_ly(plot, x = ~timestamp, y = ~get(plotted_parameter),
                 color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively
-                key=~plot_id, type = "scatter", legendgroup = ~get(label_type()),  showlegend = T) %>%
+                key=~plot_id, type = "scatter", legendgroup = ~get(label_type())) %>% #,  showlegend = T) %>%
           
           layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
-                 #y = -.6),
+                 showlegend = T,
                  yaxis = list(title = plotted_parameter),
                  xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
                               range = c(start_date(), as.Date(date_range_max())))) %>%
