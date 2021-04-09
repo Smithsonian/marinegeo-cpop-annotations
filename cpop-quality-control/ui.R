@@ -117,18 +117,18 @@ body <- dashboardBody(
               column(width = 3,
                      box(width = NULL, 
                          status = "primary",
-                         title = "Search available data",
+                         title = "Search available data"#,
                          
-                         # Dropdown selector for sites
-                         selectInput("site", "Select a site",
-                                     unique(key$Site), multiple = TRUE),
-
-                         # select a time range
-                         selectInput("date_range", "Select a time range",
-                                     unique(key$Date), multiple = TRUE),
-                         
-                         selectInput("file", "Select a file",
-                                     unique(key$Filename), multiple = TRUE)
+                         # # Dropdown selector for sites
+                         # selectInput("site", "Select a site",
+                         #             unique(key$Site), multiple = TRUE),
+                         # 
+                         # # select a time range
+                         # selectInput("date_range", "Select a time range",
+                         #             unique(key$Date), multiple = TRUE),
+                         # 
+                         # selectInput("file", "Select a file",
+                         #             unique(key$Filename), multiple = TRUE)
                      )
               ),
               column(width = 9,

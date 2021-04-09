@@ -1,7 +1,7 @@
 
 function(input, output, session) {
   ## Source submission server code
-  source("./submission.R", local = TRUE)
+  # source("./submission.R", local = TRUE)
   
   ## Reactive Objects ####
   # Initiate empty object to hold imported data
@@ -9,14 +9,11 @@ function(input, output, session) {
   # current_data <- reactiveValues(df=dat)
   
   # Empty dataframes will hold points selected for level 1 QC flags and level 2 QC flags and codes
-  qc_output <- reactiveValues(flags = tibble(ID = as.character(NA),
-                                             #timestamp = as.POSIXct(NA),
+  qc_output <- reactiveValues(flags = tibble(id = as.character(NA),
                                              sensor = as.character(NA),
-                                             #status = as.character(NA),
                                              flag = as.character(NA),
                                              .rows = 0),
-                              codes = tibble(ID = as.character(NA),
-                                             #timestamp = as.POSIXct(NA),
+                              codes = tibble(id = as.character(NA),
                                              sensor = as.character(NA),
                                              code = as.character(NA),
                                              .rows = 0))
@@ -63,20 +60,20 @@ function(input, output, session) {
   ## Subset data inventory ####
   data_inventory <- reactive({
     subset_key <- key
-    
-    if(length(input$site) > 0){
-      subset_key <- filter(subset_key,
-                           Site %in% input$site)
-    }
-    if(length(input$date_range) > 0){
-      subset_key <- filter(subset_key,
-                           Date %in% input$date_range)
-    }
-    if(length(input$file) > 0){
-      subset_key <- filter(subset_key,
-                           Filename %in% input$file)
-    }
-    
+
+    # if(length(input$site) > 0){
+    #   subset_key <- filter(subset_key,
+    #                        Site %in% input$site)
+    # }
+    # if(length(input$date_range) > 0){
+    #   subset_key <- filter(subset_key,
+    #                        Date %in% input$date_range)
+    # }
+    # if(length(input$file) > 0){
+    #   subset_key <- filter(subset_key,
+    #                        Filename %in% input$file)
+    # }
+
     subset_key
   })
   
@@ -134,121 +131,69 @@ function(input, output, session) {
   # Action to take if run query button pressed
   observeEvent(input$loadData, {
     
-    selected_file <- data_inventory()[input$key_rows_selected,]$Filename
+    selected_site <- data_inventory()[input$key_rows_selected,]$site_code
+    selected_year <- data_inventory()[input$key_rows_selected,]$year
     
-    if(length(selected_file) != 0){
-      
-      qc_output$flags = tibble(ID = as.character(NA),
-                               #timestamp = as.POSIXct(NA),
-                               sensor = as.character(NA),
-                               #status = as.character(NA),
-                               flag = as.character(NA),
-                               .rows = 0)
-      qc_output$codes = tibble(ID = as.character(NA),
-                               #timestamp = as.POSIXct(NA),
-                               sensor = as.character(NA),
-                               code = as.character(NA),
-                               .rows = 0)
-  
-      current_file(selected_file)
-      
-      # Read in CSV given filepath
-      current_data$df <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/L1_DATA_FLAGS/", 
-                                              selected_file))
-      
-      # Convert timestamp to POSIXct
-      current_data$df <- current_data$df %>%
-        #select(-timestamp) %>%
-        #rename(timestamp = timestamp3) %>%
-        mutate(timestamp = ymd_hms(timestamp)) 
-      
-      current_data$df <- as.data.frame(lapply(current_data$df, function(x){
-        if(is.integer(x)){
-          as.numeric(x)
-        } else {x}
-      }))
-      
-      # Check if current filename has previous annotations and read them in
-      data_identifier <- gsub("_L1-data.csv", "", current_file())
-      
-      ## ... Load L2 flags/codes ####
-      # If L2 annotations exist, read them in 
-      # Otherwise read in L1 annotation
-      if(data_identifier %in% annotation_directory$identifier){
+      if(length(selected_site) != 0){
         
-        # First check for codes
-        if(any(grepl("L2-codes.csv", annotation_directory$name))){
-          codes_filename <- gsub("L1-data", "L2-codes", current_file())
-          
-          qc_output$codes <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/L2_quality_control/L2_codes/",
-                                                  codes_filename)) %>%
-            mutate_all(as.character)# %>%
-            #mutate(timestamp = ymd_hms(timestamp))
-        }
+        con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
         
-        flags_filename <- gsub("L1-data", "L2-flags", current_file())
+        wq_dat <- tbl(con, "water_quality_l1")
+        wq_qc_dat <- tbl(con, "water_quality_primary_flags")
         
-        qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/L2_quality_control/L2_flags/",
-                                                flags_filename)) #%>%
-          #mutate_all(as.character) # %>%
-          # mutate(status = case_when(
-          #   status == "-1" ~ "Not evaluated",
-          #   status == "0" ~ "Revised", 
-          #   status == "1" ~ "Approved",
-          #   T ~ "-2"
-          # ))#,
-          # flag = case_when(
-          #   flag == "-5" ~ "Outside high range",
-          #   flag == "-4" ~ "Outside low range",
-          #   flag == "-3" ~ "Data rejected due to QAQC",
-          #   flag == "-2" ~ "Missing Data",
-          #   flag == "-1" ~ "Optional parameter, not collected",
-          #   flag == "0" ~ "Passed L1 QC",
-          #   flag == "1" ~ "Suspect Data",
-          #   flag == "2" ~ "Reserved for Future Use",
-          #   T ~ "Other Flags"
-          # ))
+        current_data$df <- wq_dat %>%
+          filter(year(timestamp) == selected_year,
+                 site_code == selected_site) %>%
+          collect() # %>%
+          # select(-timestamp) %>%
+          # rename(timestamp = timestamp3)
+        
+        current_ids <- current_data$df$id
+        
+        raw_flags <- wq_qc_dat %>%
+          filter(id %in% current_ids) %>%
+          collect()
+        
+        dbDisconnect(con)
+        
+        qc_output$flags <- raw_flags %>%
+          pivot_longer(Turbidity_FNU_f:fDOM_RFU_f, names_to = "sensor", values_to = "flag") %>%
+          mutate(sensor = case_when(
+            sensor == "Turbidity_FNU_f" ~ "tu",
+            sensor == "Sal_psu_f" ~ "ct",
+            sensor == "Temp_C_f" ~ "ct",              
+            sensor == "Cond_microS_cm_f" ~ "ct",      
+            sensor == "pH_f" ~ "ph",                  
+            sensor == "Depth_m_f" ~ "de",              
+            sensor == "ODO_mg_L_f" ~ "op",           
+            sensor == "Chlorophyll_microg_L_f" ~ "ta",
+            sensor == "fDOM_RFU_f" ~ "fd",
+            T ~ NA_character_
+          )) %>%
+          group_by(id, sensor) %>%
+          summarize(flag = min(flag))
+        
+        current_site(selected_site)
+        current_date_range(paste(strftime(min(current_data$df$timestamp),
+                                          '%Y-%m-%d'),
+                                 strftime(max(current_data$df$timestamp),
+                                          '%Y-%m-%d'),
+                                 sep = " to "))
+        
+        # Set min and max for start date input
+        current_min_date(min(current_data$df$timestamp))
+        current_max_date(max(current_data$df$timestamp))
         
       } else {
-        # Read in the L1 flags
-        qc_output$flags <- drop_read_csv(paste0("Marine_GEO_CPOP_PROCESSING/L1_DATA_FLAGS/", 
-                                                   gsub("-data", "-flags", selected_file))) # %>%
-         # mutate_all(as.character) # %>%
-          #mutate(status = "Not evaluated")#, # Whether L1 flag has been accepted, rejected, or needs to be evaluated
-                 # flag = case_when(
-                 #   flag == "-5" ~ "Outside high range",
-                 #   flag == "-4" ~ "Outside low range",
-                 #   flag == "-3" ~ "Data rejected due to QAQC",
-                 #   flag == "-2" ~ "Missing Data",
-                 #   flag == "-1" ~ "Optional parameter, not collected",
-                 #   flag == "0" ~ "Passed L1 QC",
-                 #   flag == "1" ~ "Suspect Data",
-                 #   flag == "2" ~ "Reserved for Future Use",
-                 #   T ~ "Other Flags"
-                 #))
-
+        showModal(modalDialog(
+          title = "No Data Selected",
+          div("Load data by selecting the row in the table that represents the data of interest.
+                You can subset the table using the subset options to the left of the table."),
+          
+          easyClose = TRUE
+        ))
       }
-      
-      current_site(data_inventory()[input$key_rows_selected,]$Site)
-      current_date_range(paste(strftime(min(current_data$df$timestamp),
-                                        '%Y-%m-%d'),
-                               strftime(max(current_data$df$timestamp), 
-                                        '%Y-%m-%d'),
-                               sep = " to "))
-      
-      # Set min and max for start date input
-      current_min_date(min(current_data$df$timestamp))
-      current_max_date(max(current_data$df$timestamp))
-      
-    } else {
-      showModal(modalDialog(
-        title = "No Data Selected", 
-        div("Load data by selecting the row in the table that represents the data of interest. 
-            You can subset the table using the subset options to the left of the table."),
-        
-        easyClose = TRUE
-      ))
-    }
+    
   })
   
   # # Reformats label_mode input for plotly color argument (ex: Codes to code)
@@ -283,7 +228,7 @@ function(input, output, session) {
     dat_list <- compact(list(df1 = data_plot_1(), df2 = data_plot_2()))
     
     max_row_value <- 0
-    # Assign a unique ID to each observation in the list
+    # Assign a unique id to each observation in the list
     # Necessary to determine which subplot was selected in QC
     if(length(dat_list) > 0){
       for(i in 1:length(dat_list)){
@@ -335,8 +280,8 @@ function(input, output, session) {
     # 
     # # Return subset of data within selection
     # dat %>%
-    #   mutate(ID = as.character(ID)) %>%
-    #   filter(ID %in% brush_subset$key)
+    #   mutate(id = as.character(id)) %>%
+    #   filter(id %in% brush_subset$key)
   })
 
   ## ... QC UI box ####
@@ -482,7 +427,7 @@ function(input, output, session) {
   # 
   #   in_progress_qc$flags <- qc_output$flags %>%
   #     mutate(status = case_when(
-  #       ID %in% selection$df$ID &
+  #       id %in% selection$df$id &
   #         sensor == sensor_flag() &
   #         status == "Not evaluated" ~ "Approved",
   #       T ~ status
@@ -502,13 +447,13 @@ function(input, output, session) {
   observeEvent(input$confirm_revisions,{
     in_progress_qc$flags <- qc_output$flags %>%
       # mutate(status = case_when(
-      #   ID %in% selection$df$ID &
+      #   id %in% selection$df$id &
       #     sensor == sensor_flag() &
       #     status == "Not evaluated" ~ "Revised",
       #   T ~ status
       # ),
       mutate(flag = case_when(
-        ID %in% selection$df$ID &
+        id %in% selection$df$id &
           sensor == sensor_flag() &
           flag != -2 ~ as.integer(input$revise_flags),
         T ~ flag
@@ -528,15 +473,15 @@ function(input, output, session) {
     revised_codes <- data.frame()
     for(selected_code in selected_codes){
       revised_codes <- selection$df %>%
-        select(ID) %>%
+        select(id) %>%
         mutate(sensor = sensor_flag(),
                code = selected_code,
-               ID = as.character(ID)) %>%
+               id = as.character(id)) %>%
         bind_rows(revised_codes)
     }
 
     qc_output$codes <- qc_output$codes %>%
-      filter(!(ID %in% selection$df$ID & sensor == sensor_flag())) %>%
+      filter(!(id %in% selection$df$id & sensor == sensor_flag())) %>%
       bind_rows(revised_codes)
 
     runjs("Shiny.setInputValue('plotly_selected-A', null);")
@@ -601,7 +546,7 @@ function(input, output, session) {
   #
   #     datatable(
   #       data_subset %>%
-  #         filter(ID %in% brush_subset$key)
+  #         filter(id %in% brush_subset$key)
   #     )
   #   } else {
   #     datatable(data_subset)

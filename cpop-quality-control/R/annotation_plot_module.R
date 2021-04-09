@@ -61,7 +61,7 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
       # Determine if observations for current sensor have been annotated
       qc_output$codes %>%
         filter(sensor == sensor_flag()) %>%
-        group_by(ID) %>%
+        group_by(id) %>%
         summarize(code = paste(code, collapse = ", "))
     })
 
@@ -82,9 +82,9 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
       }
       
       df <- current_data$df %>%
-        select(timestamp, ID, all_of(input$parameter_qc)) %>%
-        merge(flag_timestamps(), by="ID", all.x=TRUE) %>%
-        merge(code_timestamps(), by="ID", all.x=TRUE) %>%
+        select(timestamp, id, all_of(input$parameter_qc)) %>%
+        merge(flag_timestamps(), by="id", all.x=TRUE) %>%
+        merge(code_timestamps(), by="id", all.x=TRUE) %>%
         # Provide values to missing data
         mutate(!!input$parameter_qc := case_when(
           flag == -2 ~ parameter_mean(),
@@ -169,7 +169,7 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
                 key=~plot_id, type = "scatter", legendgroup = ~get(label_type()),  showlegend = T) %>%
           
           layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
-                 #y = -.6),
+                 showlegend = T,
                  yaxis = list(title = plotted_parameter),
                  xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
                               range = c(start_date(), as.Date(date_range_max())))) %>%
