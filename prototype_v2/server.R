@@ -466,6 +466,8 @@ function(input, output, session) {
       n_codes_unassigned(length(selection$df$code[selection$df$code == "Code required"]))
       total_points_in_selection(nrow(selection$df))
 
+      js$collapseBox("plot_controls_box")
+      
       if(n_flags_unrevised() > 0){
         quality_control_stage("revise_out_of_bounds")
       } else if(all(selection$df$flag == -2)){
@@ -539,6 +541,7 @@ function(input, output, session) {
       filter(!(ID %in% selection$df$ID & sensor == sensor_flag())) %>%
       bind_rows(revised_codes)
 
+    #js$expandBox("plot_controls_box")
     runjs("Shiny.setInputValue('plotly_selected-A', null);")
     
   })
@@ -547,7 +550,8 @@ function(input, output, session) {
 
     qc_output$flags <- in_progress_qc$flags
     runjs("Shiny.setInputValue('plotly_selected-A', null);")
-
+    #js$expandBox("plot_controls_box")
+    
     reset_plot_status(
       reset_plot_status() + 1
     )
@@ -571,6 +575,7 @@ function(input, output, session) {
   observeEvent(input$cancel_selection, {
 
     runjs("Shiny.setInputValue('plotly_selected-A', null);")
+    #js$expandBox("plot_controls_box")
     
     reset_plot_status(
       reset_plot_status() + 1

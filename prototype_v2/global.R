@@ -117,3 +117,14 @@ jscode <-
   Shiny.onInputChange("GetScreenHeight",jsHeight);
 });
 '
+
+jscode_box_collapse <- "
+shinyjs.expandBox = function(boxid) {
+  if (document.getElementById(boxid).parentElement.className.includes('collapsed-box')) {
+    $('#' + boxid).closest('.box').find('[data-widget=collapse]').click();
+  }};
+shinyjs.collapseBox = function(boxid) {
+  if (!document.getElementById(boxid).parentElement.className.includes('collapsed-box')) {
+    $('#' + boxid).closest('.box').find('[data-widget=collapse]').click();
+  }}
+"

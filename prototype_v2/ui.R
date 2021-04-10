@@ -22,6 +22,7 @@ sidebar <- dashboardSidebar(
 
 body <- dashboardBody(
   useShinyjs(),
+  extendShinyjs(text = jscode_box_collapse, functions = c("expandBox", "collapseBox")),
   tabItems(
     tabItem("about",
             
@@ -157,7 +158,7 @@ body <- dashboardBody(
     tabItem("annotate_data",
             fluidRow(
               column(width = 12,
-                     box(width = NULL, title = "Plot Options", collapsible = T,
+                     box(width = NULL, title = "Plot Options", collapsible = T, id = "plot_controls_box",
                          
                          splitLayout(
                            id = "plot_controls_split_layout",
