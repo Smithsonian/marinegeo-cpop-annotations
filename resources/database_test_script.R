@@ -29,6 +29,7 @@ dbDisconnect(con)
 con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
 wq_dat <- tbl(con, "water_quality_l1")
 wq_qc_dat <- tbl(con, "water_quality_primary_flags")
+wq_qc_2 <- tbl(con, "water_quality_secondary_flags")
 
 df <- wq_dat %>%
   filter(year(timestamp) == 2018,
@@ -38,6 +39,10 @@ df <- wq_dat %>%
 current_ids <- df$id
 
 raw_flags <- wq_qc_dat %>%
+  filter(id %in% current_ids) %>%
+  collect()
+
+raw_flags2 <- wq_qc_2 %>%
   filter(id %in% current_ids) %>%
   collect()
 
@@ -81,9 +86,11 @@ wq_dat %>%
   group_by(year(timestamp), site_code) %>%
   summarize(n = n_distinct(timestamp3), min_time = min(timestamp3), max_time = max(timestamp3))
 
-code_ex <- tibble(id = c(1, 2, 3), 
-       sensor = c("ct", "tu", "ct"),
-       code = c("GCC", "GCM", "GCR"))
+code_ex <- tibble(
+  id = c(1, 2, 3), 
+  sensor = c("ct", "tu", "ct"),
+  code = c("GCC", "GCM", "GCR")
+)
 
 con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
 wq_codes <- tbl(con, "water_quality_codes")
@@ -94,7 +101,6 @@ DBI::dbWriteTable(con,
 
 wq_codes
 
-cmd <- paste("update MyTable values ", values)
 result <- sqlQuery(con, cmd, as.is=TRUE) 
 
 cmd <- "
@@ -103,7 +109,24 @@ SET `code` = \"ZZZ\"
 WHERE id = 1;
 "
 
-dbGetQuery(con, cmd)
+code_ex <- tibble(
+  id = c(1, 2, 3), 
+  sensor = c("ct", "tu", "ct"),
+  code = c("GCC", "GCM", "GCR")
+)
+
+code_ex_replacement <- tibble(
+  code_id = c(1,2),
+  id = c(1, 2), 
+  sensor = c("aa", "bb"),
+  code = c("bbb", "aaa")
+)
+
+copy_to(con, code_ex_replacement)
+
+cmd <- "REPLACE INTO water_quality_codes * FROM code_ex_replacement" 
+
+DBI::dbGetQuery(con, cmd)
 
 ## Annotation app 
 
@@ -114,7 +137,36 @@ dbGetQuery(con, cmd)
 # ID - sensor - flag
 
 
+x <- code_ex_replacement
 
+rs <- DBI::dbSendQuery(con, paste0('SHOW COLUMNS FROM ', "water_quality_codes", ';'))
+col_names <- DBI::dbFetch(rs)
+dbClearResult(rs)
+pri <- which(col_names$Key == "PRI")
+table <- "water_quality_codes"
+# For each row of table, update db
+for(i in 1:nrow(x)) {
+  
+  # Transform ith row of dataset into character vector
+  values <- sapply(x[i, ], as.character)
+  
+  # Build the INSERT/UPDATE query
+  myquery <- paste0("INSERT INTO ",
+                    table,
+                    "(", paste(col_names$Field, collapse = ", "), ") ", # column names
+                    "VALUES",
+                    "('", paste(values, collapse = "', '"), "') ", # new records
+                    "ON DUPLICATE KEY UPDATE ",
+                    paste(col_names$Field[-pri], values[-pri], sep = " = '", collapse = "', "), # everything minus primary keys
+                    "';")
+  
+  print(myquery)
+  #if(verbose) cat("Performing query", i, "of", nrow(x), ":\n", myquery, "\n\n")
+  
+  # Send query to database
+  DBI::dbSendQuery(con, myquery)
+  #print(myquery)
+}
 
 # First collect IDs of any codes in the database
 

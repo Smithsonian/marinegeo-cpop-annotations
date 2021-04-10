@@ -88,7 +88,7 @@ sensor_vector_l1 <- c("Turbidity" = "tu",
 #               "1 (Suspect Data)" = 1)
 
 qc_flags <- c("-3 (Data rejected due to QAQC)" = -3,
-                            "1 (Suspect Data)" = 1)
+              "1 (Suspect Data)" = 1)
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)
@@ -121,6 +121,42 @@ submissionDate <- function() format(Sys.time(), "%Y%m%d")
 
 rosetta <- read_csv("./data/MarineGEO_rosetta.csv",
                     locale = locale(encoding = "Windows-1252"))
+
+saveAnnotations <- function(x, table_name){
+  
+  con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
+  
+  rs <- DBI::dbSendQuery(con, paste0('SHOW COLUMNS FROM ', table_name, ';'))
+  table_column_names <- DBI::dbFetch(rs)
+  dbClearResult(rs)
+  primary_key <- which(table_column_names$Key == "PRI")
+
+  # Single query per row of data
+  for(i in 1:nrow(x)) {
+    
+    # Row of data to vector
+    dat_values <- sapply(x[i, ], as.character)
+    
+    # Insert or update - no rows are deleted
+    row_query <- paste0("INSERT INTO ",
+                      table_name,
+                      "(", paste(table_column_names$Field, collapse = ", "), ") ", # column names
+                      "VALUES",
+                      "('", paste(dat_values, collapse = "', '"), "') ", # new records
+                      "ON DUPLICATE KEY UPDATE ",
+                      paste(table_column_names$Field[-primary_key], dat_values[-primary_key], sep = " = '", collapse = "', "), 
+                      "';")
+    
+    print(row_query)
+
+    DBI::dbSendQuery(con, row_query)
+    #print(myquery)
+    
+  }
+  
+  dbDisconnect(con)
+  
+}
 
 # jscode <-
 #   '$(document).on("shiny:connected", function(e) {

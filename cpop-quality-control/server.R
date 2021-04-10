@@ -12,6 +12,7 @@ function(input, output, session) {
   qc_output <- reactiveValues(flags = tibble(id = as.character(NA),
                                              sensor = as.character(NA),
                                              flag = as.character(NA),
+                                             status = as.character(NA),
                                              .rows = 0),
                               codes = tibble(id = as.character(NA),
                                              sensor = as.character(NA),
@@ -144,9 +145,9 @@ function(input, output, session) {
         current_data$df <- wq_dat %>%
           filter(year(timestamp) == selected_year,
                  site_code == selected_site) %>%
-          collect() # %>%
-          # select(-timestamp) %>%
-          # rename(timestamp = timestamp3)
+          collect() %>%
+          select(-timestamp) %>%
+          rename(timestamp = timestamp3)
         
         current_ids <- current_data$df$id
         
@@ -171,8 +172,9 @@ function(input, output, session) {
             T ~ NA_character_
           )) %>%
           group_by(id, sensor) %>%
-          summarize(flag = min(flag))
-        
+          summarize(flag = min(flag)) %>%
+          mutate(status = NA_character_)
+    
         current_site(selected_site)
         current_date_range(paste(strftime(min(current_data$df$timestamp),
                                           '%Y-%m-%d'),
@@ -446,18 +448,17 @@ function(input, output, session) {
 
   observeEvent(input$confirm_revisions,{
     in_progress_qc$flags <- qc_output$flags %>%
-      # mutate(status = case_when(
-      #   id %in% selection$df$id &
-      #     sensor == sensor_flag() &
-      #     status == "Not evaluated" ~ "Revised",
-      #   T ~ status
-      # ),
+      mutate(status = case_when(
+        id %in% selection$df$id &
+          sensor == sensor_flag() ~ "Revised",
+        T ~ status
+      )) %>%
       mutate(flag = case_when(
         id %in% selection$df$id &
           sensor == sensor_flag() &
           flag != -2 ~ as.integer(input$revise_flags),
         T ~ flag
-      ))
+      )) 
 
     quality_control_stage("revise codes")
 
@@ -590,53 +591,20 @@ function(input, output, session) {
   ## Submit annotations ####
   observeEvent(input$submit_codes, {
 
-    flags_filename <- gsub("L1-data", "L2-flags", current_file())
-    codes_filename <- gsub("L1-data", "L2-codes", current_file())
-
-    setwd(tempdir())
-
-    output_flags <- qc_output$flags # %>%
-      # mutate(flag = case_when(
-      #   flag == "Outside high range" ~ "-5",
-      #   flag == "Outside low range" ~ "-4",
-      #   flag == "Data rejected due to QAQC" ~ "-3",
-      #   flag == "Missing Data" ~ "-2",
-      #   flag == "Optional parameter, not collected" ~ "-1",
-      #   flag == "Passed L1 QC" ~ "0",
-      #   flag == "Suspect Data" ~ "1",
-      #   flag == "Reserved for Future Use" ~ "2",
-      #   T ~ "3"
-      # )) %>%
-      # mutate(status = case_when(
-      #   status == "Not evaluated" ~ "-1",
-      #   status == "Revised" ~ "0",
-      #   status == "Approved" ~ "1",
-      #   T ~ "-2"
-      # ))
-
-    # Upload flags even if no changes made
-    write_csv(output_flags, flags_filename)
-
-    drop_upload(flags_filename,
-                path = "Marine_GEO_CPOP_PROCESSING/L2_quality_control/L2_flags")
-
-    if(nrow(qc_output$codes) > 0){
-
-      write_csv(qc_output$codes, codes_filename)
-
-      drop_upload(codes_filename,
-                  path = "Marine_GEO_CPOP_PROCESSING/L2_quality_control/L2_codes")
-
-    }
-
+    output_flags <- qc_output$flags %>%
+      # filter(status == "Revised") %>%
+      select(-status) %>%
+      pivot_wider(names_from = "sensor", values_from = "flag") %>%
+      select(id, tu, ct, ph, de, op, ta, fd)
+    
+    saveAnnotations(output_flags, "water_quality_secondary_flags")
+    
     showModal(modalDialog(
       title = "Annotations saved",
       div("Your annotations have been saved."),
 
       easyClose = TRUE
     ))
-
-    setwd(original_wd)
 
   })
 
