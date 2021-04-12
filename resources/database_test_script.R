@@ -1,36 +1,24 @@
-wq_dat <- tbl(con, "water_quality_l1")
-
-library(lubridate)
-
-wq_dat %>%
-  group_by(year(timestamp), site_code) %>%
-  summarize(n = n())
-
-
-test <- wq_dat %>%
-  filter(year(timestamp) == 2018) %>%
-  collect()
-
 library(DBI)
-dbDisconnect(con)
-
-con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
-
-wq_dat <- tbl(con, "water_quality_l1")
-
-key <- wq_dat %>%
-  group_by(year(timestamp), site_code) %>%
-  summarize(n = n()) %>%
-  collect() %>%
-  rename(year = `year(timestamp)`)
-
-dbDisconnect(con)
+library(tidyverse)
+library(lubridate)
 
 con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
 wq_dat <- tbl(con, "water_quality_l1")
 wq_qc_dat <- tbl(con, "water_quality_primary_flags")
 wq_qc_2 <- tbl(con, "water_quality_secondary_flags")
 
+
+# Get summary (by year) numbers of water quality data
+key <- wq_dat %>%
+  group_by(year(timestamp), site_code) %>%
+  summarize(n = n()) %>%
+  collect() %>%
+  rename(year = `year(timestamp)`)
+
+DBI::dbDisconnect(con)
+
+
+# Pull in flags based on a ID query 
 df <- wq_dat %>%
   filter(year(timestamp) == 2018,
          site_code == "PAN-BDT") %>%
@@ -46,46 +34,9 @@ raw_flags2 <- wq_qc_2 %>%
   filter(id %in% current_ids) %>%
   collect()
 
-flags <- raw_flags %>%
-  pivot_longer(Turbidity_FNU_f:fDOM_RFU_f, names_to = "sensor", values_to = "flag") %>%
-  mutate(sensor = case_when(
-    sensor == "Turbidity_FNU_f" ~ "tu",
-    sensor == "Sal_psu_f" ~ "ct",
-    sensor == "Temp_C_f" ~ "ct",              
-    sensor == "Cond_microS_cm_f" ~ "ct",      
-    sensor == "pH_f" ~ "ph",                  
-    sensor == "Depth_m_f" ~ "de",              
-    sensor == "ODO_mg_L_f" ~ "op",           
-    sensor == "Chlorophyll_microg_L_f" ~ "ta",
-    sensor == "fDOM_RFU_f" ~ "fd",
-    T ~ NA_character_
-  )) %>%
-  group_by(id, sensor) %>%
-  summarize(flag = min(flag))
+DBI::dbDisconnect(con)
 
-flags %>%
-  filter(sensor == "ct") %>%
-  group_by(id) %>%
-  summarize(n = n_distinct(flag)) %>%
-  filter(n > 1)
-
-flags %>%
-  filter(id == 859675)
-
-ct_group <- flags %>%
-  filter(sensor == "ct") %>%
-  group_by(id) %>%
-  summarize(flag = min(flag))
-
-
-grouped <- flags %>%
-  group_by(id, sensor) %>%
-  summarize(flag = min(flag))
-
-wq_dat %>%
-  group_by(year(timestamp), site_code) %>%
-  summarize(n = n_distinct(timestamp3), min_time = min(timestamp3), max_time = max(timestamp3))
-
+## Append a table 
 code_ex <- tibble(
   id = c(1, 2, 3), 
   sensor = c("ct", "tu", "ct"),
@@ -101,13 +52,16 @@ DBI::dbWriteTable(con,
 
 wq_codes
 
-result <- sqlQuery(con, cmd, as.is=TRUE) 
-
+# Text query 
 cmd <- "
 UPDATE water_quality_codes 
 SET `code` = \"ZZZ\" 
 WHERE id = 1;
 "
+
+result <- sqlQuery(con, cmd, as.is=TRUE) 
+
+# Compare three methods of appending and overwriting
 
 code_ex <- tibble(
   id = c(1, 2, 3), 
@@ -115,27 +69,26 @@ code_ex <- tibble(
   code = c("GCC", "GCM", "GCR")
 )
 
-code_ex_replacement <- tibble(
-  code_id = c(1,2),
-  id = c(1, 2), 
-  sensor = c("aa", "bb"),
-  code = c("bbb", "aaa")
+code_ex_append <- tibble(
+  code_id = c(4, 5, 6),
+  id = c(4, 5, 6), 
+  sensor = c("ct", "tu", "ct"),
+  code = c("GCC", "GCM", "GCR")
 )
 
-copy_to(con, code_ex_replacement)
+code_ex_write <- tibble(
+  code_id = c(7, 8, 9),
+  id = c(4, 5, 6), 
+  sensor = c("ct", "tu", "ct"),
+  code = c("GCC", "GCM", "GCR")
+)
 
-cmd <- "REPLACE INTO water_quality_codes * FROM code_ex_replacement" 
+system.time(DBI::dbAppendTable(con, "water_quality_codes", value = code_ex_append)) # .13 sec
+system.time(DBI::dbWriteTable(con, "water_quality_codes", value = code_ex_write, append = T)) # .1 sec
+system.time(DBI::dbWriteTable(con, "water_quality_codes", value = code_ex_write, overwrite = T)) # .21 sec
 
-DBI::dbGetQuery(con, cmd)
 
-## Annotation app 
-
-# Save Flags
-
-# 1. use delete! 
-
-# ID - sensor - flag
-
+## Use loop to do row-wise insertion
 
 x <- code_ex_replacement
 
@@ -168,5 +121,123 @@ for(i in 1:nrow(x)) {
   #print(myquery)
 }
 
-# First collect IDs of any codes in the database
+## Test larger insertion methods 
+
+full_qc <- read_csv("D:/data/Dropbox (Smithsonian)/marinegeo_resources/test_datalake/data/final_output_qc.csv")
+full_dat <- read.csv("D:/data/Dropbox (Smithsonian)/marinegeo_resources/test_datalake/data/final_output.csv")
+
+mda_2016_id <- full_dat %>%
+  filter(site_code == "USA-MDA",
+         grepl("2016", as.character(timestamp))) %>%
+  pull(id)
+
+con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
+wq_dat <- tbl(con, "water_quality_l1")
+system.time(tbl(con, "water_quality_primary_flags") %>% filter(id %in% mda_2016_id) %>% collect())
+
+
+wq_qc_2 <- tbl(con, "water_quality_secondary_flags")
+
+upload_me <- full_qc %>%
+  filter(id %in% mda_2016_id)
+
+# Tragically, this took 639 seconds
+system.time(DBI::dbAppendTable(con, name = "water_quality_primary_flags", value = upload_me))
+
+# try 2017 using WriteTable - Still took too long, cancelled before it resolved fully. 
+mda_2017_id <- full_dat %>%
+  filter(site_code == "USA-MDA",
+         grepl("2017", as.character(timestamp))) %>%
+  pull(id)
+
+upload_me2 <- full_qc %>%
+  filter(id %in% mda_2017_id)
+
+system.time(DBI::dbWriteTable(con, name = "water_quality_primary_flags", value = upload_me2, append = T))
+
+
+# load data infile gave a permission denied error
+
+mda_2017_id <- full_dat %>%
+  filter(site_code == "USA-MDA",
+         grepl("2017", as.character(timestamp))) %>%
+  pull(id)
+
+upload_me3 <- full_qc %>%
+  filter(id %in% mda_2017_id)
+
+write.table(upload_me3, "test.csv", row.names = F, col.names = F, sep = "\t")
+
+query = "LOAD DATA INFILE 'test.csv' INTO TABLE water_quality_primary_flags"
+system.time(dbGetQuery(con, query))
+
+## 
+
+mda_2016 <- full_dat %>%
+  mutate(timestamp = as.character(timestamp),
+         timestamp2 = as.character(timestamp2),
+         timestamp3 = as.character(timestamp3)) %>%
+  filter(site_code == "USA-MDA",
+         grepl("2016", timestamp)) %>%
+  mutate(timestamp = gsub("T", " ", timestamp),
+         timestamp2 = gsub("T", " ", timestamp2),
+         timestamp3 = gsub("T", " ", timestamp3)) %>%
+  mutate(timestamp = gsub("Z", " ", timestamp),
+         timestamp2 = gsub("Z", " ", timestamp2),
+         timestamp3 = gsub("Z", " ", timestamp3))
+
+system.time(DBI::dbWriteTable(con, name = "water_quality_l1", value = mda_2016, append = T))
+
+DBI::dbDisconnect(con)
+
+
+## Test deletion of QC rows
+# Total time for ~ 72000 rows = 680 seconds 
+# Total time for deletion and replacement: 20 minutes...D
+mda_2017_id <- full_dat %>%
+  filter(site_code == "USA-MDA",
+         grepl("2017", as.character(timestamp))) %>%
+  pull(id)
+
+qc_2017 <- wq_qc_dat %>%
+  filter(id %in% mda_2017_id) %>%
+  collect()
+
+# Currently 72000 rows
+min(qc_2017$id)
+
+# PREPARED STATEMEN
+sql <- "delete from water_quality_primary_flags  where id = ?"
+vals <- qc_2017$id
+
+# BIND PARAM AND EXECUTE ACTION
+system.time(dbSendQuery(con, sql, list(vals)))
+
+
+## Try a more selective insert, single insert query
+# 20% of a yearly bundle
+# Took 132 seconds
+
+mda_2016_id <- full_dat %>%
+  filter(site_code == "USA-MDA",
+         grepl("2016", as.character(timestamp))) %>%
+  pull(id)
+
+qc_raw <- wq_qc_dat %>%
+  filter(id %in% mda_2016_id) %>%
+  collect()
+
+qc_subset <- qc_raw[1:15000,] %>%
+  mutate(pH_f = 0)
+
+# pH_f column altered
+vals <- qc_subset$id
+  
+sql <- 
+"UPDATE water_quality_primary_flags 
+SET `pH_f` = \"0\" 
+WHERE id = ?"
+
+system.time(dbSendQuery(con, sql, list(vals)))
+
 

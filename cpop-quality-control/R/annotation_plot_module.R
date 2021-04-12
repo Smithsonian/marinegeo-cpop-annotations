@@ -22,7 +22,7 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
     sensor_parameters <- reactiveVal(NA) # Holds parameters available for currently selected sensor in plot
     parameter_mean <- reactiveVal(0) # Mean of currently selected parameter to fill in for missing data
     formatted_sensor_name <- reactiveVal(NA)
-    sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
+    #sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
     
     # # Update vector of sensor parameters for input and save the formatted version of the sensor name 
     observeEvent(input$sensor_qc, {
@@ -60,7 +60,7 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
     code_timestamps <- reactive({
       # Determine if observations for current sensor have been annotated
       qc_output$codes %>%
-        filter(sensor == sensor_flag()) %>%
+        filter(parameter == input$parameter_qc) %>%
         group_by(id) %>%
         summarize(code = paste(code, collapse = ", "))
     })
@@ -69,8 +69,8 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
     # There should only be one flag per timestamp
     flag_timestamps <- reactive({
       qc_output$flags %>%
-        filter(sensor == sensor_flag()) %>%
-        select(-sensor)
+        filter(parameter == paste0(input$parameter_qc, "_f")) %>%
+        select(-parameter, -status)
     })
     
     reactive({

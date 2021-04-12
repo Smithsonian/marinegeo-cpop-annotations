@@ -10,12 +10,12 @@ function(input, output, session) {
   
   # Empty dataframes will hold points selected for level 1 QC flags and level 2 QC flags and codes
   qc_output <- reactiveValues(flags = tibble(id = as.character(NA),
-                                             sensor = as.character(NA),
+                                             parameter = as.character(NA),
                                              flag = as.character(NA),
                                              status = as.character(NA),
                                              .rows = 0),
                               codes = tibble(id = as.character(NA),
-                                             sensor = as.character(NA),
+                                             parameter = as.character(NA),
                                              code = as.character(NA),
                                              .rows = 0))
   
@@ -158,21 +158,7 @@ function(input, output, session) {
         dbDisconnect(con)
         
         qc_output$flags <- raw_flags %>%
-          pivot_longer(Turbidity_FNU_f:fDOM_RFU_f, names_to = "sensor", values_to = "flag") %>%
-          mutate(sensor = case_when(
-            sensor == "Turbidity_FNU_f" ~ "tu",
-            sensor == "Sal_psu_f" ~ "ct",
-            sensor == "Temp_C_f" ~ "ct",              
-            sensor == "Cond_microS_cm_f" ~ "ct",      
-            sensor == "pH_f" ~ "ph",                  
-            sensor == "Depth_m_f" ~ "de",              
-            sensor == "ODO_mg_L_f" ~ "op",           
-            sensor == "Chlorophyll_microg_L_f" ~ "ta",
-            sensor == "fDOM_RFU_f" ~ "fd",
-            T ~ NA_character_
-          )) %>%
-          group_by(id, sensor) %>%
-          summarize(flag = min(flag)) %>%
+          pivot_longer(Turbidity_FNU_f:fDOM_RFU_f, names_to = "parameter", values_to = "flag") %>%
           mutate(status = NA_character_)
     
         current_site(selected_site)
@@ -254,7 +240,7 @@ function(input, output, session) {
   n_codes_unassigned <- reactiveVal(NA)
   total_points_in_selection <- reactiveVal(NA)
   selection <- reactiveValues(df = tibble())
-  sensor_flag <- reactiveVal(NA)
+  parameter_flag <- reactiveVal(NA)
   
   # # Reactive used to determine which points are in selection
   getPlotlySelection <- reactive({
@@ -268,11 +254,11 @@ function(input, output, session) {
       distinct() %>%
       pull(parameter_name)
     
-    selected_sensor <- sensor_parameters_df %>%
-      filter(parameter == selected_parameter) %>%
-      pull(sensor_abbreviation)
+    # selected_sensor <- sensor_parameters_df %>%
+    #   filter(parameter == selected_parameter) %>%
+    #   pull(sensor_abbreviation)
     
-    sensor_flag(selected_sensor)
+    parameter_flag(selected_parameter)
     
     return(dat)
     # dat <- subset_data()
@@ -413,6 +399,8 @@ function(input, output, session) {
       n_codes_unassigned(length(selection$df$code[selection$df$code == "Code required"]))
       total_points_in_selection(nrow(selection$df))
 
+      js$collapseBox("plot_controls_box")
+      
       if(n_flags_unrevised() > 0){
         quality_control_stage("revise_out_of_bounds")
       } else if(all(selection$df$flag == -2)){
@@ -447,15 +435,16 @@ function(input, output, session) {
   # })
 
   observeEvent(input$confirm_revisions,{
+    
     in_progress_qc$flags <- qc_output$flags %>%
       mutate(status = case_when(
         id %in% selection$df$id &
-          sensor == sensor_flag() ~ "Revised",
+          parameter == paste0(parameter_flag(), "_f") ~ "Revised",
         T ~ status
       )) %>%
       mutate(flag = case_when(
         id %in% selection$df$id &
-          sensor == sensor_flag() &
+          parameter == paste0(parameter_flag(), "_f") &
           flag != -2 ~ as.integer(input$revise_flags),
         T ~ flag
       )) 
@@ -475,14 +464,14 @@ function(input, output, session) {
     for(selected_code in selected_codes){
       revised_codes <- selection$df %>%
         select(id) %>%
-        mutate(sensor = sensor_flag(),
+        mutate(parameter = parameter_flag(),
                code = selected_code,
                id = as.character(id)) %>%
         bind_rows(revised_codes)
     }
 
     qc_output$codes <- qc_output$codes %>%
-      filter(!(id %in% selection$df$id & sensor == sensor_flag())) %>%
+      filter(!(id %in% selection$df$id & parameter == parameter_flag())) %>%
       bind_rows(revised_codes)
 
     runjs("Shiny.setInputValue('plotly_selected-A', null);")
@@ -560,7 +549,7 @@ function(input, output, session) {
     if(nrow(qc_output$codes) > 0){
       summary <- qc_output$codes %>%
         #mutate(timestamp = ymd_hms(timestamp)) %>%
-        group_by(sensor, code) %>%
+        group_by(parameter, code) %>%
         summarize(number_points_flagged = n())#,
                   #from = min(timestamp),
                   #to = max(timestamp))
@@ -570,41 +559,43 @@ function(input, output, session) {
   })
 
   ## Remove QC flags ####
-  output$remove_codes <- renderUI({
-    selectInput("select_remove_codes", "Select QC codes to remove",
-                choices = unique(qc_output$codes$code), multiple = TRUE)
+  # output$remove_codes <- renderUI({
+  #   selectInput("select_remove_codes", "Select QC codes to remove",
+  #               choices = unique(qc_output$codes$code), multiple = TRUE)
+  # 
+  # })
 
-  })
-
-  observeEvent(input$confirm_removal,{
-
-    if(!is.null(input$select_remove_codes)){
-      points_to_remove <- qc_output$codes %>%
-        filter(code %in% input$select_remove_codes)
-
-      qc_output$codes <- qc_output$codes %>%
-        filter(!(code %in% input$select_remove_codes))
-
-    }
-  })
+  # observeEvent(input$confirm_removal,{
+  # 
+  #   if(!is.null(input$select_remove_codes)){
+  #     points_to_remove <- qc_output$codes %>%
+  #       filter(code %in% input$select_remove_codes)
+  # 
+  #     qc_output$codes <- qc_output$codes %>%
+  #       filter(!(code %in% input$select_remove_codes))
+  # 
+  #   }
+  # })
 
   ## Submit annotations ####
   observeEvent(input$submit_codes, {
 
-    output_flags <- qc_output$flags %>%
-      # filter(status == "Revised") %>%
-      select(-status) %>%
-      pivot_wider(names_from = "sensor", values_from = "flag") %>%
-      select(id, tu, ct, ph, de, op, ta, fd)
+    print(head(qc_output$flags))
     
-    saveAnnotations(output_flags, "water_quality_secondary_flags")
-    
-    showModal(modalDialog(
-      title = "Annotations saved",
-      div("Your annotations have been saved."),
-
-      easyClose = TRUE
-    ))
+    # output_flags <- qc_output$flags %>%
+    #   # filter(status == "Revised") %>%
+    #   select(-status) %>%
+    #   pivot_wider(names_from = "parameter", values_from = "flag") #%>%
+    #   #select(id, tu, ct, ph, de, op, ta, fd)
+    # 
+    # saveAnnotations(output_flags, "water_quality_secondary_flags")
+    # 
+    # showModal(modalDialog(
+    #   title = "Annotations saved",
+    #   div("Your annotations have been saved."),
+    # 
+    #   easyClose = TRUE
+    # ))
 
   })
 
