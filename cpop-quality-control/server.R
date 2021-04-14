@@ -137,7 +137,13 @@ function(input, output, session) {
     
       if(length(selected_site) != 0){
         
-        con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
+        con <- DBI::dbConnect(odbc::odbc(),
+                              Driver = "MySQL ODBC 8.0 ANSI Driver",
+                              Server = "si-mysqlproxy01.si.edu",
+                              Port = 7003,
+                              Database = "orc_data_lake",
+                              UID = "datLakeDev",
+                              PWD = Sys.getenv('password'))
         
         wq_dat <- tbl(con, "water_quality_l1")
         wq_qc_dat <- tbl(con, "water_quality_primary_flags")

@@ -217,6 +217,8 @@ system.time(dbSendQuery(con, sql, list(vals)))
 ## Try a more selective insert, single insert query
 # 20% of a yearly bundle
 # Took 132 seconds
+full_qc <- read_csv("D:/data/Dropbox (Smithsonian)/marinegeo_resources/test_datalake/data/final_output_qc.csv")
+full_dat <- read.csv("D:/data/Dropbox (Smithsonian)/marinegeo_resources/test_datalake/data/final_output.csv")
 
 mda_2016_id <- full_dat %>%
   filter(site_code == "USA-MDA",
@@ -236,8 +238,51 @@ vals <- qc_subset$id
 sql <- 
 "UPDATE water_quality_primary_flags 
 SET `pH_f` = \"0\" 
-WHERE id = ?"
+WHERE `id` IN (?)"
+
+system.time(dbSendQuery(con, sql, list(vals)))
+
+# 1000 points - 8.9 seconds - not bad. 
+
+qc_subset <- qc_raw[1:1000,] %>%
+  mutate(pH_f = 0)
+
+# pH_f column altered
+vals <- qc_subset$id
+
+sql <- 
+  "UPDATE water_quality_primary_flags 
+SET `pH_f` = \"3\" 
+WHERE `id` IN (?)"
 
 system.time(dbSendQuery(con, sql, list(vals)))
 
 
+## Upload a two week section of data 
+# 10 seconds! 
+
+mda2017 <- full_dat %>%
+  filter(site_code == "USA-MDA",
+         grepl("2017", timestamp)) %>%
+  mutate(timestamp = ymd_hms(timestamp)) %>%
+  filter(timestamp < min(timestamp) + weeks(2)) %>%
+  mutate(timestamp = as.character(timestamp),
+         timestamp2 = as.character(timestamp2),
+         timestamp3 = as.character(timestamp3)) %>%
+  mutate(timestamp = gsub("T", " ", timestamp),
+         timestamp2 = gsub("T", " ", timestamp2),
+         timestamp3 = gsub("T", " ", timestamp3)) %>%
+  mutate(timestamp = gsub("Z", " ", timestamp),
+         timestamp2 = gsub("Z", " ", timestamp2),
+         timestamp3 = gsub("Z", " ", timestamp3))
+
+system.time(DBI::dbWriteTable(con, name = "water_quality_l1", value = mda2017, append = T))
+
+## Connect via driver only, provide credentials in R
+con <- DBI::dbConnect(odbc::odbc(),
+                      Driver = "MySQL ODBC 8.0 ANSI Driver",
+                      Server = "si-mysqlproxy01.si.edu",
+                      Port = 7003,
+                      Database = "orc_data_lake",
+                      UID = "datLakeDev",
+                      PWD = Sys.getenv('password'))

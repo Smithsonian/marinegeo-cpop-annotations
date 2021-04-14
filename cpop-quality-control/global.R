@@ -20,7 +20,13 @@ library(DBI)
 #introduction_text <- read_file("./prototype_v2/data/intro.txt")
 introduction_text <- read_file("./data/intro.txt")
 
-con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
+con <- DBI::dbConnect(odbc::odbc(),
+                      Driver = "MySQL ODBC 8.0 ANSI Driver",
+                      Server = "si-mysqlproxy01.si.edu",
+                      Port = 7003,
+                      Database = "orc_data_lake",
+                      UID = "datLakeDev",
+                      PWD = Sys.getenv('password'))
 
 wq_dat <- tbl(con, "water_quality_l1")
 
@@ -122,41 +128,41 @@ submissionDate <- function() format(Sys.time(), "%Y%m%d")
 rosetta <- read_csv("./data/MarineGEO_rosetta.csv",
                     locale = locale(encoding = "Windows-1252"))
 
-saveAnnotations <- function(x, table_name){
-  
-  con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
-  
-  rs <- DBI::dbSendQuery(con, paste0('SHOW COLUMNS FROM ', table_name, ';'))
-  table_column_names <- DBI::dbFetch(rs)
-  dbClearResult(rs)
-  primary_key <- which(table_column_names$Key == "PRI")
-
-  # Single query per row of data
-  for(i in 1:nrow(x)) {
-    
-    # Row of data to vector
-    dat_values <- sapply(x[i, ], as.character)
-    
-    # Insert or update - no rows are deleted
-    row_query <- paste0("INSERT INTO ",
-                      table_name,
-                      "(", paste(table_column_names$Field, collapse = ", "), ") ", # column names
-                      "VALUES",
-                      "('", paste(dat_values, collapse = "', '"), "') ", # new records
-                      "ON DUPLICATE KEY UPDATE ",
-                      paste(table_column_names$Field[-primary_key], dat_values[-primary_key], sep = " = '", collapse = "', "), 
-                      "';")
-    
-    print(row_query)
-
-    DBI::dbSendQuery(con, row_query)
-    #print(myquery)
-    
-  }
-  
-  dbDisconnect(con)
-  
-}
+# saveAnnotations <- function(x, table_name){
+#   
+#   con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
+#   
+#   rs <- DBI::dbSendQuery(con, paste0('SHOW COLUMNS FROM ', table_name, ';'))
+#   table_column_names <- DBI::dbFetch(rs)
+#   dbClearResult(rs)
+#   primary_key <- which(table_column_names$Key == "PRI")
+# 
+#   # Single query per row of data
+#   for(i in 1:nrow(x)) {
+#     
+#     # Row of data to vector
+#     dat_values <- sapply(x[i, ], as.character)
+#     
+#     # Insert or update - no rows are deleted
+#     row_query <- paste0("INSERT INTO ",
+#                       table_name,
+#                       "(", paste(table_column_names$Field, collapse = ", "), ") ", # column names
+#                       "VALUES",
+#                       "('", paste(dat_values, collapse = "', '"), "') ", # new records
+#                       "ON DUPLICATE KEY UPDATE ",
+#                       paste(table_column_names$Field[-primary_key], dat_values[-primary_key], sep = " = '", collapse = "', "), 
+#                       "';")
+#     
+#     print(row_query)
+# 
+#     DBI::dbSendQuery(con, row_query)
+#     #print(myquery)
+#     
+#   }
+#   
+#   dbDisconnect(con)
+#   
+# }
 
 # jscode <-
 #   '$(document).on("shiny:connected", function(e) {
