@@ -417,9 +417,9 @@ function(input, output, session) {
     } else if(quality_control_stage() == "revise codes"){
       div(id = "revise_codes_div",
           tags$h3("Add or Revise Quality Control Codes"),
-          "Assign a general or sensor code for ", tags$b("all"), " selected points. You may also select one or more comment codes. ",
+          "Assign a general or sensor code for ", tags$b("all"), " selected points. You may also select a comment code. ",
           "Note that you are allowed to assign codes to any point, regardless of flag. ",
-          "All points that are not flagged as \"0\" require a code to be assigned.", 
+          "All points that are not flagged as \"0\" require a general or sensor code to be assigned.", 
           tags$br(), tags$br(),
 
           splitLayout(
@@ -430,8 +430,8 @@ function(input, output, session) {
                 actionButton("confirm_codes", "Confirm code selections", class = "btn-primary"),
                 actionButton("skip_revising_codes", "Do not assign a code"),
                 actionButton("cancel_selection", "Cancel selection")),
-              selectInput("comment_code_selection", "Select one or more comment codes",
-                          choices = comment_codes, multiple = TRUE)
+              selectInput("comment_code_selection", "Select a comment codes",
+                          choices = c("", comment_codes))
             )),
             div()),
 
@@ -525,8 +525,12 @@ function(input, output, session) {
 
     qc_output$flags <- in_progress_qc$flags
 
-    selected_codes <- c(input$sensor_code_selection, input$comment_code_selection)
-
+    if(input$comment_code_selection == ""){
+      selected_codes <- c(input$sensor_code_selection)
+    } else {
+      selected_codes <- c(input$sensor_code_selection, input$comment_code_selection)
+    }
+    
     revised_codes <- data.frame()
     for(selected_code in selected_codes){
       revised_codes <- selection$df %>%
