@@ -6,27 +6,26 @@ function(input, output, session) {
   ## Reactive Objects ####
   # Initiate empty object to hold imported data
   current_data <- reactiveValues(df=data.frame())
-  # current_data <- reactiveValues(df=dat)
-  
+
   # Empty dataframes will hold points selected for level 1 QC flags and level 2 QC flags and codes
-  qc_output <- reactiveValues(flags = tibble(id = as.character(NA),
+  qc_output <- reactiveValues(flags = tibble(id = as.numeric(NA),
                                              parameter = as.character(NA),
                                              flag = as.character(NA),
-                                             status = as.character(NA),
+                                             modified = as.logical(NA),
                                              .rows = 0),
-                              codes = tibble(id = as.character(NA),
+                              codes = tibble(id = as.numeric(NA),
                                              parameter = as.character(NA),
-                                             code = as.character(NA),
+                                             #code = as.character(NA),
+                                             main_code = as.character(NA),
+                                             comment_code = as.character(NA),
+                                             modified = as.logical(NA),
                                              .rows = 0))
-  
 
-  current_file <- reactiveVal(NA) # Filename for data currently loaded
   current_site <- reactiveVal(NA) # Site for data currently loaded
   current_date_range <- reactiveVal(NA) # Date range for data currently loaded
   in_progress_qc <- reactiveValues() # Holds decision and outcomes of qc process until user cancels or confirms all decisions
   
   # Formatted name of selected sensors (transformed from UI-friendly versions)
-  # sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
   view_mode <- reactive({input$view_mode})
   start_date <- reactive({input$start_date})
   
@@ -165,7 +164,7 @@ function(input, output, session) {
         
         qc_output$flags <- raw_flags %>%
           pivot_longer(Turbidity_FNU_f:fDOM_RFU_f, names_to = "parameter", values_to = "flag") %>%
-          mutate(status = NA_character_)
+          mutate(modified = F)
     
         current_site(selected_site)
         current_date_range(paste(strftime(min(current_data$df$timestamp),
@@ -417,36 +416,15 @@ function(input, output, session) {
     }
   })
 
-  ## ... Accept flags ####
-  # If a user accepts flags, status column in flag dataframe is updated
-  # observeEvent(input$accept_flags,{
-  # 
-  #   in_progress_qc$flags <- qc_output$flags %>%
-  #     mutate(status = case_when(
-  #       id %in% selection$df$id &
-  #         sensor == sensor_flag() &
-  #         status == "Not evaluated" ~ "Approved",
-  #       T ~ status
-  #     ))
-  # 
-  #   quality_control_stage("revise codes")
-  # 
-  # })
-
-  ## ... Reject and revise flags ####
-  # If a user accepts rejects flags, change UI to allow for new selection
-  # observeEvent(input$reject_flags, {
-  #   quality_control_stage("revise flags")
-  # 
-  # })
-
   observeEvent(input$confirm_revisions,{
     
     in_progress_qc$flags <- qc_output$flags %>%
-      mutate(status = case_when(
+      # If a flag is updated, change modified to T
+      mutate(modified = case_when(
         id %in% selection$df$id &
-          parameter == paste0(parameter_flag(), "_f") ~ "Revised",
-        T ~ status
+          parameter == paste0(parameter_flag(), "_f") &
+          flag != -2 & flag != as.integer(input$revise_flags) ~ T,
+        T ~ modified
       )) %>%
       mutate(flag = case_when(
         id %in% selection$df$id &
@@ -454,7 +432,7 @@ function(input, output, session) {
           flag != -2 ~ as.integer(input$revise_flags),
         T ~ flag
       )) 
-
+    
     quality_control_stage("revise codes")
 
   })
@@ -464,21 +442,65 @@ function(input, output, session) {
 
     qc_output$flags <- in_progress_qc$flags
 
-    selected_codes <- c(input$sensor_code_selection, input$comment_code_selection)
-
-    revised_codes <- data.frame()
-    for(selected_code in selected_codes){
-      revised_codes <- selection$df %>%
-        select(id) %>%
-        mutate(parameter = parameter_flag(),
-               code = selected_code,
-               id = as.character(id)) %>%
-        bind_rows(revised_codes)
+    if(!is.null(input$comment_code_selection)){
+      comment_code_selection <- input$comment_code_selection
+    } else {comment_code_selection <- NA_character_}
+    
+    # Update existing codes 
+    updated_codes <- qc_output$codes %>%
+      mutate(modified = case_when(
+        id %in% selection$df$id &
+          parameter == parameter_flag() & 
+          input$sensor_code_selection != main_code ~ T,
+        id %in% selection$df$id &
+          parameter == parameter_flag() & 
+          comment_code_selection != comment_code ~ T,
+        T ~ modified
+      )) %>%
+      mutate(main_code = case_when(
+        id %in% selection$df$id &
+          parameter == parameter_flag() ~ input$sensor_code_selection,
+        T ~ main_code
+      )) %>%
+      mutate(comment_code = case_when(
+        id %in% selection$df$id &
+          parameter == parameter_flag() ~ comment_code_selection,
+        T ~ comment_code
+      )) 
+      
+    if(length(selection$df$id[!selection$df$id %in% updated_codes$id]) > 0){
+      # Create new rows if observation did not have any pre-existing codes
+      new_codes <- tibble(
+        id = selection$df$id[!selection$df$id %in% updated_codes$id],
+        parameter = parameter_flag(),
+        main_code = input$sensor_code_selection,
+        comment_code = comment_code_selection,
+        modified = T
+      )
+      
+      qc_output$codes <- bind_rows(updated_codes, new_codes)
+    
+    } else {
+      qc_output$codes <- updated_codes
     }
-
-    qc_output$codes <- qc_output$codes %>%
-      filter(!(id %in% selection$df$id & parameter == parameter_flag())) %>%
-      bind_rows(revised_codes)
+    
+    print(qc_output$codes %>%
+            filter(modified))
+    # selected_codes <- c(input$sensor_code_selection, input$comment_code_selection)
+    # 
+    # revised_codes <- data.frame()
+    # for(selected_code in selected_codes){
+    #   revised_codes <- selection$df %>%
+    #     select(id) %>%
+    #     mutate(parameter = parameter_flag(),
+    #            code = selected_code,
+    #            id = as.character(id)) %>%
+    #     bind_rows(revised_codes)
+    # }
+    # 
+    # qc_output$codes <- qc_output$codes %>%
+    #   filter(!(id %in% selection$df$id & parameter == parameter_flag())) %>%
+    #   bind_rows(revised_codes)
 
     runjs("Shiny.setInputValue('plotly_selected-A', null);")
     
@@ -553,14 +575,14 @@ function(input, output, session) {
   output$table_summary_qc <- renderDataTable({
 
     if(nrow(qc_output$codes) > 0){
-      summary <- qc_output$codes %>%
-        #mutate(timestamp = ymd_hms(timestamp)) %>%
-        group_by(parameter, code) %>%
-        summarize(number_points_flagged = n())#,
-                  #from = min(timestamp),
-                  #to = max(timestamp))
-
-      datatable(summary)
+      # summary <- qc_output$codes %>%
+      #   #mutate(timestamp = ymd_hms(timestamp)) %>%
+      #   group_by(parameter, code) %>%
+      #   summarize(number_points_flagged = n())#,
+      #             #from = min(timestamp),
+      #             #to = max(timestamp))
+      # 
+      # datatable(summary)
     }
   })
 
@@ -586,7 +608,14 @@ function(input, output, session) {
   ## Submit annotations ####
   observeEvent(input$submit_codes, {
 
-    print(head(qc_output$flags))
+    # print(head(qc_output$flags))
+    
+    # The following code should go after data has been updated in database
+    qc_output$flags <- qc_output$flags %>%
+      mutate(modified = FALSE)
+    
+    qc_output$codes <- qc_output$codes %>%
+      mutate(modified = FALSE)
     
     # output_flags <- qc_output$flags %>%
     #   # filter(status == "Revised") %>%

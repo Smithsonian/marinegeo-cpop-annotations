@@ -16,7 +16,8 @@ library(DT)
 library(plotly)
 library(shinyjs)
 library(DBI)
-
+library(dbplyr, lib.loc = "/home/lonnemanm/library")
+  
 #introduction_text <- read_file("./prototype_v2/data/intro.txt")
 introduction_text <- read_file("./data/intro.txt")
 
@@ -27,6 +28,7 @@ con <- DBI::dbConnect(odbc::odbc(),
                       Database = "orc_data_lake",
                       UID = "datLakeDev",
                       PWD = Sys.getenv('password'))
+                      #PWD = "Da&LdN5uj6w#Nzwp")
 
 wq_dat <- tbl(con, "water_quality_l1")
 
@@ -38,19 +40,6 @@ key <- wq_dat %>%
   select(-n)
 
 dbDisconnect(con)
-
-
-# Get filenames to populate UI for now
-# bundled_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/L1_DATA_FLAGS/") %>%
-#   pull(name)
-
-# key <- as_tibble(bundled_directory) %>%
-#   rename(Filename = value) %>%
-#   separate(Filename, into = c("Site", "File Type", "Date", "Status"), sep = "_", remove = FALSE) %>%
-#   mutate(Status = gsub(".csv", "", Status)) %>%
-#   select(everything(), Filename) %>%
-#   filter(Status == "L1-data") %>%
-#   arrange(Date)
 
 sensor_parameters_df <- read_csv("./data/sensor_parameters.csv")
 
@@ -98,24 +87,6 @@ qc_flags <- c("-3 (Data rejected due to QAQC)" = -3,
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)
-
-# Get filenames of annotations
-# annotation_directory <- drop_dir("Marine_GEO_CPOP_PROCESSING/L2_quality_control/", recursive = T) 
-
-# If there are no annotations in the directory a data frame with no rows or columns is returned. 
-# The app must have a df with a column "name"
-# if(nrow(annotation_directory) == 0){
-#   annotation_directory <- tibble(identifier = NA_character_, .rows = 0)
-# 
-# } else {
-#   # site-code_filetype_year_level_annotationtype
-#   annotation_directory <- annotation_directory %>%
-#     filter(`.tag` == "file") %>%
-#     select(name) %>%
-#     separate(name, into = c("site_code", "file_type", "year", "level", "annotation_type"), sep = "_", remove = FALSE) %>%
-#     mutate(annotation_type = gsub(".csv", "", annotation_type),
-#            identifier = paste(site_code, file_type, year, sep = "_"))
-# }
 
 # Record working directory to return to after moving to temporary directory
 original_wd <- getwd()

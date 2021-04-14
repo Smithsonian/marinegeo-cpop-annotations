@@ -61,8 +61,13 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
       # Determine if observations for current sensor have been annotated
       qc_output$codes %>%
         filter(parameter == input$parameter_qc) %>%
-        group_by(id) %>%
-        summarize(code = paste(code, collapse = ", "))
+        mutate(code = case_when(
+          is.na(comment_code) ~ main_code,
+          T ~ paste(main_code, comment_code, sep = ", ")
+        )) %>%
+        select(-modified, -parameter)
+        #group_by(id) %>%
+        #summarize(code = paste(code, collapse = ", "))
     })
 
     # Return dataframe containing timestamps and flags
@@ -70,7 +75,7 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
     flag_timestamps <- reactive({
       qc_output$flags %>%
         filter(parameter == paste0(input$parameter_qc, "_f")) %>%
-        select(-parameter, -status)
+        select(-parameter, -modified)
     })
     
     reactive({
