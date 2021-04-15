@@ -149,6 +149,24 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
       
       return(labels)
     })
+    
+    inactive_label <- reactive({
+      if(label_type() == "flag"){
+        return("code")
+      } else return("flag")
+    })
+    
+    getPlotColors <- reactive({
+      
+      # RColorBrewer dark 2 palette - currently unused values get grey shades
+      color_dictionary <- c("-5" = "#1B9E77", "-4" = "#D95F02", "-3" = "#E6AB02", "-2" = "#7570B3", "-1" = "grey10",
+                            "0" = "#E7298A", "1" = "#66A61E", "2" = "grey50", "3" = "grey20", "4" = "grey30", "5" = "grey40")
+      
+      color_subset <- color_dictionary[names(color_dictionary) %in% as.character(getPlotLabels())]
+      color_subset_ordered <- color_subset[order(factor(names(color_subset), levels = as.character(getPlotLabels())))]
+      
+      return(color_subset_ordered)
+    })
 
     output$plot_qc <- renderPlotly({
       
@@ -162,23 +180,27 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
         # Modifies column, either flag or code, depending on label type input
         # Transforms to a leveled factor, alphabetical
         plot <- i %>%
-          mutate(!!label_type() := factor(.data[[label_type()]], levels = as.character(getPlotLabels())))
+          mutate(!!label_type() := factor(.data[[label_type()]], levels = as.character(getPlotLabels()))) 
         
         plot_ly(plot, x = ~timestamp, y = ~get(plotted_parameter),
                 color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively
-                key=~plot_id, type = "scatter", legendgroup = ~get(label_type())) %>% #,  showlegend = T) %>%
+                colors = as.character(getPlotColors()),
+                hovertext = ~get(inactive_label()), 
+                hover = 'text',
+                key=~plot_id, unselected = list(marker = list(opacity = 1)), type = "scatter", 
+                legendgroup = ~get(label_type())) %>% #,  showlegend = T) %>%
           
           layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
                  showlegend = T,
                  yaxis = list(title = plotted_parameter),
                  xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
                               range = c(start_date(), as.Date(date_range_max())))) %>%
-          # event_register("plotly_selected") %>%
-          # highlight(on = 'plotly_selected', opacityDim = getOption("opacityDim", 1)) %>%
           toWebGL()
       })
-      
+    
       if(length(plot_objects) > 0){
+        
+        print(unname(getPlotColors()))
         
         if(length(plot_objects) > 1){
           subplot(plot_objects, nrows = 2, shareX = T, titleY = TRUE, margin = .1) 
