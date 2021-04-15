@@ -16,8 +16,14 @@ library(DT)
 library(plotly)
 library(shinyjs)
 library(DBI)
-library(dbplyr, lib.loc = "/home/lonnemanm/library")
-  
+
+app_location <- "local"
+#app_location <- "shiny_server"
+
+if(app_location == "shiny_server"){
+  library(dbplyr, lib.loc = "/home/lonnemanm/library")
+}
+
 #introduction_text <- read_file("./prototype_v2/data/intro.txt")
 introduction_text <- read_file("./data/intro.txt")
 
