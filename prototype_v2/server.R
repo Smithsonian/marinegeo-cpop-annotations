@@ -21,7 +21,27 @@ function(input, output, session) {
                                              code = as.character(NA),
                                              .rows = 0))
   
+  flag_summary <- reactive({
+    
+    qc_output$flags %>%
+      count(flag) %>%
+      rename(`total observations` = n)
+    
+  })
+  
+  code_summary <- reactive({
+    
+    code_summary <- qc_output$codes %>%
+      count(code) %>%
+      rename(`total observations` = n)
 
+    if(nrow(code_summary) == 0){
+      code_summary <- add_row(code_summary, code = "None")
+    }
+    
+    return(code_summary)
+  })
+  
   current_file <- reactiveVal(NA) # Filename for data currently loaded
   current_site <- reactiveVal(NA) # Site for data currently loaded
   current_date_range <- reactiveVal(NA) # Date range for data currently loaded
@@ -84,11 +104,16 @@ function(input, output, session) {
   output$data_info_box <- renderUI({
     
     if(!is.na(current_site())){
-      div(
-        tags$hr(),
-        
+      div(id = "sidebar_summary",
+        hr(),
         paste0("Site: ", current_site()), tags$br(),
-        paste0("Date Range: ", current_date_range())
+        paste0("Start Date: ", strftime(min(current_data$df$timestamp), '%Y-%m-%d')), tags$br(),
+        paste0("End Date: ", strftime(max(current_data$df$timestamp), '%Y-%m-%d')),
+        hr(),
+        "Quality Control Summary", tags$br(),
+        renderTable(flag_summary()),
+        renderTable(code_summary())
+
       )
     }
   })  
