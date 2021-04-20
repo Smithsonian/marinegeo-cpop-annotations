@@ -278,11 +278,12 @@ mda2017 <- full_dat %>%
 
 system.time(DBI::dbWriteTable(con, name = "water_quality_l1", value = mda2017, append = T))
 
-## Connect via driver only, provide credentials in R
-con <- DBI::dbConnect(odbc::odbc(),
-                      Driver = "MySQL ODBC 8.0 ANSI Driver",
-                      Server = "si-mysqlproxy01.si.edu",
-                      Port = 7003,
-                      Database = "orc_data_lake",
-                      UID = "datLakeDev",
-                      PWD = Sys.getenv('password'))
+
+## Test with new schema (observation ID, timestamp, timestamp_15min etc.)
+data_subset <- full_dat[1:1000,] 
+
+system.time(DBI::dbWriteTable(con, name = "test_null_values", value = data_subset, append = T))
+
+flag_subset <- full_qc[1:1000,]
+
+system.time(DBI::dbWriteTable(con, name = "water_quality_primary_flags", value = flag_subset, append = T))
