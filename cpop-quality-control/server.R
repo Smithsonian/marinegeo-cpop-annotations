@@ -8,12 +8,12 @@ function(input, output, session) {
   current_data <- reactiveValues(df=data.frame())
 
   # Empty dataframes will hold points selected for level 1 QC flags and level 2 QC flags and codes
-  qc_output <- reactiveValues(flags = tibble(id = as.numeric(NA),
+  qc_output <- reactiveValues(flags = tibble(observation_id = as.numeric(NA),
                                              parameter = as.character(NA),
                                              flag = as.character(NA),
                                              modified = as.logical(NA),
                                              .rows = 0),
-                              codes = tibble(id = as.numeric(NA),
+                              codes = tibble(observation_id = as.numeric(NA),
                                              parameter = as.character(NA),
                                              #code = as.character(NA),
                                              main_code = as.character(NA),
@@ -21,6 +21,35 @@ function(input, output, session) {
                                              modified = as.logical(NA),
                                              .rows = 0))
 
+  flag_summary <- reactive({
+    
+    qc_output$flags %>%
+      count(flag) %>%
+      rename(`total observations` = n)
+    
+  })
+  
+  code_summary <- reactive({
+    
+    main_code_summary <- qc_output$codes %>%
+      count(main_code) %>%
+      rename(code = main_code)
+    
+    comment_code_summary <- qc_output$codes %>%
+      count(comment_code) %>%
+      rename(code = comment_code)
+    
+    code_summary <- bind_rows(main_code_summary, comment_code_summary) %>%
+      rename(`total observations` = n)
+    
+    if(nrow(code_summary) == 0){
+      code_summary <- add_row(code_summary, code = "None")
+    }
+    
+    return(code_summary %>%
+             filter(!is.na(code)))
+  })
+  
   current_site <- reactiveVal(NA) # Site for data currently loaded
   current_date_range <- reactiveVal(NA) # Date range for data currently loaded
   in_progress_qc <- reactiveValues() # Holds decision and outcomes of qc process until user cancels or confirms all decisions
@@ -81,11 +110,17 @@ function(input, output, session) {
   output$data_info_box <- renderUI({
     
     if(!is.na(current_site())){
-      div(
+      div(id = "sidebar_summary",
         tags$hr(),
         
         paste0("Site: ", current_site()), tags$br(),
-        paste0("Date Range: ", current_date_range())
+        paste0("Start Date: ", strftime(min(current_data$df$timestamp), '%Y-%m-%d')), tags$br(),
+        paste0("End Date: ", strftime(max(current_data$df$timestamp), '%Y-%m-%d')),
+        hr(),
+        "Quality Control Summary", tags$br(),
+        renderTable(flag_summary()),
+        renderTable(code_summary())
+        
       )
     }
   })  
@@ -148,16 +183,17 @@ function(input, output, session) {
         wq_qc_dat <- tbl(con, "water_quality_primary_flags")
         
         current_data$df <- wq_dat %>%
-          filter(year(timestamp) == selected_year,
+          filter(year(timestamp_1min) == selected_year,
+                 month(timestamp_1min) == 4,
                  site_code == selected_site) %>%
           collect() %>%
           select(-timestamp) %>%
-          rename(timestamp = timestamp3)
+          rename(timestamp = timestamp_1min)
         
-        current_ids <- current_data$df$id
+        current_ids <- current_data$df$observation_id
         
         raw_flags <- wq_qc_dat %>%
-          filter(id %in% current_ids) %>%
+          filter(observation_id %in% current_ids) %>%
           collect()
         
         dbDisconnect(con)
@@ -421,13 +457,13 @@ function(input, output, session) {
     in_progress_qc$flags <- qc_output$flags %>%
       # If a flag is updated, change modified to T
       mutate(modified = case_when(
-        id %in% selection$df$id &
+        observation_id %in% selection$df$observation_id &
           parameter == paste0(parameter_flag(), "_f") &
           flag != -2 & flag != as.integer(input$revise_flags) ~ T,
         T ~ modified
       )) %>%
       mutate(flag = case_when(
-        id %in% selection$df$id &
+        observation_id %in% selection$df$observation_id &
           parameter == paste0(parameter_flag(), "_f") &
           flag != -2 ~ as.integer(input$revise_flags),
         T ~ flag
@@ -451,29 +487,29 @@ function(input, output, session) {
     # Update existing codes 
     updated_codes <- qc_output$codes %>%
       mutate(modified = case_when(
-        id %in% selection$df$id &
+        observation_id %in% selection$df$observation_id &
           parameter == parameter_flag() & 
           input$sensor_code_selection != main_code ~ T,
-        id %in% selection$df$id &
+        observation_id %in% selection$df$observation_id &
           parameter == parameter_flag() & 
           comment_code_selection != comment_code ~ T,
         T ~ modified
       )) %>%
       mutate(main_code = case_when(
-        id %in% selection$df$id &
+        observation_id %in% selection$df$observation_id &
           parameter == parameter_flag() ~ input$sensor_code_selection,
         T ~ main_code
       )) %>%
       mutate(comment_code = case_when(
-        id %in% selection$df$id &
+        observation_id %in% selection$df$observation_id &
           parameter == parameter_flag() ~ comment_code_selection,
         T ~ comment_code
       )) 
       
-    if(length(selection$df$id[!selection$df$id %in% updated_codes$id]) > 0){
-      # Create new rows if observation did not have any pre-existing codes
+    if(length(selection$df$observation_id[!selection$df$observation_id %in% updated_codes$observation_id]) > 0){
+      # Create new rows if observation dobservation_id not have any pre-existing codes
       new_codes <- tibble(
-        id = selection$df$id[!selection$df$id %in% updated_codes$id],
+        observation_id = selection$df$observation_id[!selection$df$observation_id %in% updated_codes$observation_id],
         parameter = parameter_flag(),
         main_code = input$sensor_code_selection,
         comment_code = comment_code_selection,

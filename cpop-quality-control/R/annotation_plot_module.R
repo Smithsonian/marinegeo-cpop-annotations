@@ -87,9 +87,9 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
       }
       
       df <- current_data$df %>%
-        select(timestamp, id, all_of(input$parameter_qc)) %>%
-        merge(flag_timestamps(), by="id", all.x=TRUE) %>%
-        merge(code_timestamps(), by="id", all.x=TRUE) %>%
+        select(timestamp, observation_id, all_of(input$parameter_qc)) %>%
+        merge(flag_timestamps(), by="observation_id", all.x=TRUE) %>%
+        merge(code_timestamps(), by="observation_id", all.x=TRUE) %>%
         # Provide values to missing data
         mutate(!!input$parameter_qc := case_when(
           flag == -2 ~ parameter_mean(),
@@ -163,9 +163,8 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
     
     getPlotColors <- reactive({
       
-      # RColorBrewer dark 2 palette - currently unused values get grey shades
-      color_dictionary <- c("-5" = "#1B9E77", "-4" = "#D95F02", "-3" = "#E6AB02", "-2" = "#7570B3", "-1" = "grey10",
-                            "0" = "#E7298A", "1" = "#66A61E", "2" = "grey50", "3" = "grey20", "4" = "grey30", "5" = "grey40")
+      color_dictionary <- c("-5" = "#CC6677", "-4" = "#882255", "-3" = "#332288", "-2" = "#DDCC77", "-1" = "grey10",
+                            "0" = "#888888", "1" = "#88CCEE", "2" = "grey50", "3" = "grey20", "4" = "grey30", "5" = "grey40")
       
       color_subset <- color_dictionary[names(color_dictionary) %in% as.character(getPlotLabels())]
       color_subset_ordered <- color_subset[order(factor(names(color_subset), levels = as.character(getPlotLabels())))]

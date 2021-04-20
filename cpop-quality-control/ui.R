@@ -7,6 +7,8 @@ header <- dashboardHeader(
 )
 
 sidebar <- dashboardSidebar(
+  includeCSS("./www/style.css"),
+  
   sidebarMenu(
     id = "tabs",
     #menuItem("About", tabName = "about", icon = icon("bullhorn")),
