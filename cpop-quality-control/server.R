@@ -6,7 +6,7 @@ function(input, output, session) {
   ## Reactive Objects ####
   # Initiate empty object to hold imported data
   current_data <- reactiveValues(df=data.frame())
-  reference_data <- reactiveValues(df=data.frame())
+  # reference_data <- reactiveValues(df=data.frame())
   
   # Empty dataframes will hold points selected for level 1 QC flags and level 2 QC flags and codes
   qc_output <- reactiveValues(flags = tibble(observation_id = as.numeric(NA),
@@ -115,8 +115,9 @@ function(input, output, session) {
         tags$hr(),
         
         paste0("Site: ", current_site()), tags$br(),
-        paste0("Start Date: ", strftime(min(current_data$df$timestamp), '%Y-%m-%d')), tags$br(),
-        paste0("End Date: ", strftime(max(current_data$df$timestamp), '%Y-%m-%d')),
+        paste0("Start Date: ", strftime(current_min_date(), '%Y-%m-%d')), tags$br(),
+        paste0("End Date: ", strftime(current_max_date(), '%Y-%m-%d')), tags$br(),
+        reference_message(),
         hr(),
         "Quality Control Summary", tags$br(),
         renderTable(flag_summary()),
@@ -189,7 +190,7 @@ function(input, output, session) {
    
   output$start_date <- renderUI({
     dateInput("start_date", label = "Update start date",
-              value = current_min_date(), min = current_min_date(), max = current_max_date())
+              value = min(current_data$df$timestamp), min = min(current_data$df$timestamp), max = max(current_data$df$timestamp))
   })
   
   ## Load Data ####
@@ -232,8 +233,10 @@ function(input, output, session) {
         
         dbDisconnect(con)
         
+        reference_message("")
+        
         # Remove any reference data if it exists
-        reference_data$df <- data.frame()
+        # reference_data$df <- data.frame()
         
         qc_output$flags <- raw_flags %>%
           pivot_longer(Turbidity_FNU_f:fDOM_RFU_f, names_to = "parameter", values_to = "flag") %>%
@@ -262,6 +265,8 @@ function(input, output, session) {
     
   })
   
+  reference_message <- reactiveVal("")
+  
   observeEvent(input$loadReferenceData, {
     
     if(nrow(current_data$df) > 0){
@@ -283,7 +288,7 @@ function(input, output, session) {
 
       wq_dat <- tbl(con, "water_quality_l1")
 
-      reference_data$df <- wq_dat %>%
+      reference_data <- wq_dat %>%
         filter(site_code == !!input$site_selection) %>%
         filter((timestamp_1min < max_left_bound & timestamp_1min > min_left_bound) |
                (timestamp_1min > min_right_bound & timestamp_1min < max_right_bound)) %>%
@@ -293,6 +298,10 @@ function(input, output, session) {
 
       dbDisconnect(con)
 
+      current_data$df <- current_data$df %>%
+        bind_rows(reference_data)
+      
+      reference_message("Reference points loaded")
       
     } else {
       showModal(modalDialog(
@@ -313,7 +322,7 @@ function(input, output, session) {
   date_range_max <- reactive({
 
     if(input$date_interval == "All data"){
-      return(current_max_date())
+      return(max(current_data$df$timestamp))
     } else if(input$date_interval == "1 day"){
       return(input$start_date + hours(24))
     } else if(input$date_interval == "1 week"){
@@ -352,7 +361,7 @@ function(input, output, session) {
     return(dat_list)
   })
   
-  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status, reference_data)
+  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status)
   
   ## Apply QC logic ####
 
@@ -375,22 +384,9 @@ function(input, output, session) {
       distinct() %>%
       pull(parameter_name)
     
-    # selected_sensor <- sensor_parameters_df %>%
-    #   filter(parameter == selected_parameter) %>%
-    #   pull(sensor_abbreviation)
-    
     parameter_flag(selected_parameter)
     
     return(dat)
-    # dat <- subset_data()
-    # 
-    # brush_subset <- event_data("plotly_selected") %>%
-    #   mutate(key = as.character(key))
-    # 
-    # # Return subset of data within selection
-    # dat %>%
-    #   mutate(id = as.character(id)) %>%
-    #   filter(id %in% brush_subset$key)
   })
 
   ## ... QC UI box ####
@@ -414,7 +410,7 @@ function(input, output, session) {
           tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
         )
       )
-    } else if(!is.data.frame(event_data("plotly_selected"))){
+    } else if(!is.data.frame(event_data("plotly_selected")) | quality_control_stage() == "only_reference_points_selected"){
       div(
         tags$head(
           tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
@@ -515,20 +511,30 @@ function(input, output, session) {
   observeEvent(!is.null(event_data("plotly_selected")), {
 
     if(is.data.frame(event_data("plotly_selected"))){
-      selection$df <- getPlotlySelection()
-      n_flags_unrevised(length(selection$df$flag[selection$df$flag %in% c(-4, -5)]))
-      n_codes_unassigned(length(selection$df$code[selection$df$code == "Code required"]))
-      total_points_in_selection(nrow(selection$df))
-
-      js$collapseBox("plot_controls_box")
       
-      if(n_flags_unrevised() > 0){
-        quality_control_stage("revise_out_of_bounds")
-      } else if(all(selection$df$flag == -2)){
-        quality_control_stage("revise codes")
-      } else{
-        quality_control_stage("revise_secondary_flags")
+      selection$df <- getPlotlySelection() %>%
+        filter(flag != "Ref")
+      
+      if(nrow(selection$df) == 0){
+        quality_control_stage("only_reference_points_selected")
+        
+      } else {
+        n_flags_unrevised(length(selection$df$flag[selection$df$flag %in% c(-4, -5)]))
+        n_codes_unassigned(length(selection$df$code[selection$df$code == "Code required"]))
+        total_points_in_selection(nrow(selection$df))
+        
+        js$collapseBox("plot_controls_box")
+        
+        if(n_flags_unrevised() > 0){
+          quality_control_stage("revise_out_of_bounds")
+        } else if(all(selection$df$flag == -2)){
+          quality_control_stage("revise codes")
+        } else{
+          quality_control_stage("revise_secondary_flags")
+        }
+        
       }
+      
     }
   })
 

@@ -230,6 +230,7 @@ body <- dashboardBody(
                          uiOutput("quality_control_box"),
                          hr(),
                          annotation_plot_UI("plot")
+                         #renderUI("plot_window")
                     )
               )
             )

@@ -101,8 +101,22 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
           is.na(code) ~ "Code not required",
           T ~ code
         )) %>%
+        mutate(flag = as.character(flag),
+               code = as.character(code)) %>%
+        mutate(
+          flag = case_when(
+            is.na(flag) ~ "Ref",
+            T ~ flag
+          ),
+          code = case_when(
+            flag == "Ref" ~ "Ref",
+            T ~ code
+          )
+        ) %>%
         mutate(code = as.factor(code),
-               flag = as.factor(flag))
+               flag = as.factor(flag)) 
+
+        
 
       if(view_mode() == "Flags that require review"){
         df <- df %>%
@@ -117,11 +131,11 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
     })
   })
 }
-  
+
 annotation_plot_UI <- function(id){
   # the div id allows it's removal
   ns <- NS(id)
-  
+
   div(id = id,
       #plotlyOutput(ns("plot_qc"), height = "600px")
       uiOutput(ns("plot_window"))
@@ -129,71 +143,71 @@ annotation_plot_UI <- function(id){
 }
 
 annotation_plot_server <- function(id, plotting_data, label_type, start_date, date_range_max, reset_plot_status){
-  
+
   moduleServer(id, function(input, output, session) {
-    
+
     output$plot_window <- renderUI({
       plotlyOutput(session$ns("plot_qc"), height = getPlotHeight())
     })
-    
+
     getPlotHeight <- reactive({
       if(length(plotting_data()) > 1){
         return("700px")
       } else { return("400px")}
     })
-    
+
     getPlotLabels <- reactive({
-      
+
       label_list <- lapply(plotting_data(), function(i){
         unique(unlist(i[label_type()]))
       })
-      
+
       raw_labels <- unique(unlist(label_list))
-      
+
       labels <- unname(factor(raw_labels, levels = c(as.character(raw_labels))))
-      
+
       return(labels)
     })
-    
+
     inactive_label <- reactive({
       if(label_type() == "flag"){
         return("code")
       } else return("flag")
     })
-    
+
     getPlotColors <- reactive({
-      
+
       color_dictionary <- c("-5" = "#CC6677", "-4" = "#882255", "-3" = "#332288", "-2" = "#DDCC77", "-1" = "grey10",
-                            "0" = "#888888", "1" = "#88CCEE", "2" = "grey50", "3" = "grey20", "4" = "grey30", "5" = "grey40")
+                            "0" = "#6699CC", "1" = "#88CCEE", "2" = "grey50", "3" = "grey20", "4" = "grey30", "5" = "grey40", "Ref" = "#888888")
       
       color_subset <- color_dictionary[names(color_dictionary) %in% as.character(getPlotLabels())]
       color_subset_ordered <- color_subset[order(factor(names(color_subset), levels = as.character(getPlotLabels())))]
-      
+
       return(color_subset_ordered)
     })
-    
+
     output$plot_qc <- renderPlotly({
-      
+
       reset_plot_status()
-      
+
       # Create a plot for each df in the plotting data list
       plot_objects <- lapply(plotting_data(), function(i){
-        
+
         plotted_parameter <- colnames(i)[3]
-        
+
         # Modifies column, either flag or code, depending on label type input
         # Transforms to a leveled factor, alphabetical
         plot <- i %>%
           mutate(!!label_type() := factor(.data[[label_type()]], levels = as.character(getPlotLabels())))
-        
+
         plot_ly(plot, x = ~timestamp, y = ~get(plotted_parameter),
                 color = ~get(label_type()), # Format Codes or Flags to code or flag, respectively
                 colors = as.character(getPlotColors()),
-                hovertext = ~get(inactive_label()), 
+                hovertext = ~get(inactive_label()),
                 hover = 'text',
-                key=~plot_id, unselected = list(marker = list(opacity = 1)), type = "scatter", 
+                key=~plot_id, unselected = list(marker = list(opacity = 1)), type = "scatter",
                 legendgroup = ~get(label_type())) %>% #,  showlegend = T) %>%
-          
+
           layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
                  showlegend = T,
                  yaxis = list(title = plotted_parameter),
@@ -202,22 +216,35 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
           toWebGL()
       })
       
+      # if(nrow(reference_data$df) > 0 & length(plotting_data()) > 0){
+      #   plotted_parameter <- colnames(plotting_data()[[1]])[3]
+      #   
+      #   plot_objects <- lapply(plot_objects, function(i){
+      #     
+      #     i %>%
+      #       add_trace(data = reference_data$df,
+      #                 x = ~timestamp, y = ~get(plotted_parameter), type = "scatter")
+      #     
+      #   })
+      #     
+      # }
+      
       if(length(plot_objects) > 0){
-        
+
         if(length(plot_objects) > 1){
-          subplot(plot_objects, nrows = 2, shareX = T, titleY = TRUE, margin = .1) 
-          
+          subplot(plot_objects, nrows = 2, shareX = T, titleY = TRUE, margin = .1)
+
         } else {
-          plot_objects[[1]]  
+          plot_objects[[1]]
         }
-        
+
       }
     })
-    
+
     reactive({
       return(event_data("plotly_selected"))
     })
-    
+
   })
 }
 
