@@ -215,7 +215,7 @@ function(input, output, session) {
                               PWD = Sys.getenv('password'))
         
         wq_dat <- tbl(con, "water_quality_l1")
-        wq_qc_dat <- tbl(con, "water_quality_primary_flags")
+        wq_qc_dat <- tbl(con, "water_quality_primary_flags_backup")
         
         current_data$df <- wq_dat %>%
           filter(year(timestamp_1min) == selected_year,
@@ -714,29 +714,53 @@ function(input, output, session) {
   ## Submit annotations ####
   observeEvent(input$submit_codes, {
 
-    # print(head(qc_output$flags))
+    print(head(qc_output$flags))
     
-    # The following code should go after data has been updated in database
+    output_flags <- qc_output$flags %>%
+      filter(modified) #%>%
+      #select(-modified) %>%
+      #pivot_wider(names_from = "parameter", values_from = "flag")
+
+    con <- getDatabaseConnection()
+
+    for(current_parameter in unique(output_flags$parameter)){
+      
+      param_flags <- output_flags %>%
+        filter(parameter == current_parameter)
+      
+      for(current_flag in unique(param_flags$flag)){
+        
+        vals <- param_flags %>%
+          filter(flag == current_flag) %>%
+          pull(observation_id)
+        
+        sql <- paste0("UPDATE water_quality_primary_flags_backup SET `", current_parameter, "` = \"", current_flag, "\" WHERE `observation_id` IN (?)")
+        
+        print(sql)
+        
+        dbSendQuery(con, sql, list(vals))
+      }
+      
+    }
+    
+    dbDisconnect(con)
+    
+    # system.time(dbSendQuery(con, sql, list(vals)))
+  
+    
+    # Reset modified status so if user continues annotating, previous changes are re-sent
     qc_output$flags <- qc_output$flags %>%
       mutate(modified = FALSE)
     
     qc_output$codes <- qc_output$codes %>%
       mutate(modified = FALSE)
     
-    # output_flags <- qc_output$flags %>%
-    #   # filter(status == "Revised") %>%
-    #   select(-status) %>%
-    #   pivot_wider(names_from = "parameter", values_from = "flag") #%>%
-    #   #select(id, tu, ct, ph, de, op, ta, fd)
-    # 
-    # saveAnnotations(output_flags, "water_quality_secondary_flags")
-    # 
-    # showModal(modalDialog(
-    #   title = "Annotations saved",
-    #   div("Your annotations have been saved."),
-    # 
-    #   easyClose = TRUE
-    # ))
+    showModal(modalDialog(
+      title = "Annotations saved",
+      div("Your annotations have been saved."),
+
+      easyClose = TRUE
+    ))
 
   })
 

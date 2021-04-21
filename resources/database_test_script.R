@@ -288,3 +288,42 @@ system.time(DBI::dbWriteTable(con, name = "test_null_values", value = data_subse
 flag_subset <- full_qc[1:1000,]
 
 system.time(DBI::dbWriteTable(con, name = "water_quality_primary_flags", value = flag_subset, append = T))
+
+
+## Old row by row insertion method
+# saveAnnotations <- function(x, table_name){
+#   
+#   con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
+#   
+#   rs <- DBI::dbSendQuery(con, paste0('SHOW COLUMNS FROM ', table_name, ';'))
+#   table_column_names <- DBI::dbFetch(rs)
+#   dbClearResult(rs)
+#   primary_key <- which(table_column_names$Key == "PRI")
+# 
+#   # Single query per row of data
+#   for(i in 1:nrow(x)) {
+#     
+#     # Row of data to vector
+#     dat_values <- sapply(x[i, ], as.character)
+#     
+#     # Insert or update - no rows are deleted
+#     row_query <- paste0("INSERT INTO ",
+#                       table_name,
+#                       "(", paste(table_column_names$Field, collapse = ", "), ") ", # column names
+#                       "VALUES",
+#                       "('", paste(dat_values, collapse = "', '"), "') ", # new records
+#                       "ON DUPLICATE KEY UPDATE ",
+#                       paste(table_column_names$Field[-primary_key], dat_values[-primary_key], sep = " = '", collapse = "', "), 
+#                       "';")
+#     
+#     print(row_query)
+# 
+#     DBI::dbSendQuery(con, row_query)
+#     #print(myquery)
+#     
+#   }
+#   
+#   dbDisconnect(con)
+#   
+# }
+
