@@ -6,7 +6,8 @@ function(input, output, session) {
   ## Reactive Objects ####
   # Initiate empty object to hold imported data
   current_data <- reactiveValues(df=data.frame())
-
+  reference_data <- reactiveValues(df=data.frame())
+  
   # Empty dataframes will hold points selected for level 1 QC flags and level 2 QC flags and codes
   qc_output <- reactiveValues(flags = tibble(observation_id = as.numeric(NA),
                                              parameter = as.character(NA),
@@ -231,6 +232,9 @@ function(input, output, session) {
         
         dbDisconnect(con)
         
+        # Remove any reference data if it exists
+        reference_data$df <- data.frame()
+        
         qc_output$flags <- raw_flags %>%
           pivot_longer(Turbidity_FNU_f:fDOM_RFU_f, names_to = "parameter", values_to = "flag") %>%
           mutate(modified = F)
@@ -255,6 +259,49 @@ function(input, output, session) {
           easyClose = TRUE
         ))
       }
+    
+  })
+  
+  observeEvent(input$loadReferenceData, {
+    
+    if(nrow(current_data$df) > 0){
+
+      month_interval <- as.numeric(input$selectReferenceRange)
+      
+      min_left_bound <- current_min_date() %m-% months(month_interval)
+      max_left_bound <- current_min_date()
+      min_right_bound <- current_max_date()
+      max_right_bound <- current_max_date() %m+% months(month_interval)
+      
+      con <- DBI::dbConnect(odbc::odbc(),
+                            Driver = "MySQL ODBC 8.0 ANSI Driver",
+                            Server = "si-mysqlproxy01.si.edu",
+                            Port = 7003,
+                            Database = "orc_data_lake",
+                            UID = "datLakeDev",
+                            PWD = Sys.getenv('password'))
+
+      wq_dat <- tbl(con, "water_quality_l1")
+
+      reference_data$df <- wq_dat %>%
+        filter(site_code == !!input$site_selection) %>%
+        filter((timestamp_1min < max_left_bound & timestamp_1min > min_left_bound) |
+               (timestamp_1min > min_right_bound & timestamp_1min < max_right_bound)) %>%
+        collect() %>%
+        select(-timestamp) %>%
+        rename(timestamp = timestamp_1min)
+
+      dbDisconnect(con)
+
+      
+    } else {
+      showModal(modalDialog(
+        title = "No Data Selected",
+        div("You must select data for markup prior to loading reference data."),
+        
+        easyClose = TRUE
+      ))
+    }
     
   })
   
@@ -305,7 +352,7 @@ function(input, output, session) {
     return(dat_list)
   })
   
-  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status)
+  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status, reference_data)
   
   ## Apply QC logic ####
 

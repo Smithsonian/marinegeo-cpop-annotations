@@ -143,7 +143,7 @@ body <- dashboardBody(
                          
                          tags$br(), tags$br(),
                          selectInput("selectReferenceRange", "Choose interval",
-                                     choices = c("1 month", "3 months", "6 months"), multiple = FALSE),
+                                     choices = c("1 month" = 1, "3 months" = 3, "6 months" = 6), multiple = FALSE),
                          
                          actionButton("loadReferenceData", "Load data"))
               ),
