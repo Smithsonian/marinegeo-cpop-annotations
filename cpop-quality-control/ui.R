@@ -110,31 +110,44 @@ body <- dashboardBody(
     ## Load data ####
     tabItem("load_data",
             
-            fluidRow(
-              valueBoxOutput("site_info_box", width = 3),
-              valueBoxOutput("date_range_box", width = 6)
-              #valueBoxOutput("annotation_progress_box", width = 3)
-            ),
+            # fluidRow(
+            #   valueBoxOutput("site_info_box", width = 3),
+            #   valueBoxOutput("date_range_box", width = 6)
+            #   #valueBoxOutput("annotation_progress_box", width = 3)
+            # ),
             
             fluidRow(
-              column(width = 3,
+              column(width = 4,
                      box(width = NULL, 
                          status = "primary",
-                         title = "Search available data"#,
+                         title = "Load data to markup",
                          
-                         # # Dropdown selector for sites
-                         # selectInput("site", "Select a site",
-                         #             unique(key$Site), multiple = TRUE),
-                         # 
-                         # # select a time range
-                         # selectInput("date_range", "Select a time range",
-                         #             unique(key$Date), multiple = TRUE),
-                         # 
-                         # selectInput("file", "Select a file",
-                         #             unique(key$Filename), multiple = TRUE)
-                     )
+                         # Dropdown selector for sites
+                         selectInput("site_selection", "Select a site",
+                                     unique(key$site_code), multiple = FALSE),
+                         
+                         uiOutput("year_selection"),
+                         
+                         uiOutput("month_selection"),
+                         
+                         # Read in data selected in table
+                         actionButton("loadData", "Load data", class = "btn-primary")
+
+                     ),
+                     
+                     box(width = NULL, 
+                         title = "Load reference data",
+                         
+                         "Reference data allows you to view data outside of the range you've selected for quality control. ",
+                         "Add 1, 3, or 6 months of reference data to both bounds of the markup data (if available).",
+                         
+                         tags$br(), tags$br(),
+                         selectInput("selectReferenceRange", "Choose interval",
+                                     choices = c("1 month", "3 months", "6 months"), multiple = FALSE),
+                         
+                         actionButton("loadReferenceData", "Load data"))
               ),
-              column(width = 9,
+              column(width = 8,
                      box(width = NULL,
                          status = "primary",
                          title = "Select and load data",
@@ -147,10 +160,8 @@ body <- dashboardBody(
                          
                          dataTableOutput("key"),
                          
-                         tags$br(), 
+                         tags$br()
 
-                         # Read in data selected in table
-                         actionButton("loadData", "Load data", class = "btn-primary")
                      )
               )
             )

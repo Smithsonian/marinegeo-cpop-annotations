@@ -126,20 +126,20 @@ function(input, output, session) {
   })  
   
 
-  output$site_info_box <- renderValueBox({
-    valueBox(
-      current_site(), "Site", icon = icon("broadcast-tower"),
-      color = "purple"
-    )
-  })
-
-  output$date_range_box <- renderValueBox({
-    valueBox(
-      current_date_range(), "Date Range", icon = icon("calendar-alt"),
-      color = "teal"
-    )
-  })
-  
+  # output$site_info_box <- renderValueBox({
+  #   valueBox(
+  #     current_site(), "Site", icon = icon("broadcast-tower"),
+  #     color = "purple"
+  #   )
+  # })
+  # 
+  # output$date_range_box <- renderValueBox({
+  #   valueBox(
+  #     current_date_range(), "Date Range", icon = icon("calendar-alt"),
+  #     color = "teal"
+  #   )
+  # })
+  # 
   # output$annotation_progress_box <- renderValueBox({
   #   valueBox(
   #     current_qc_progress(), "Quality Control Progress", icon = icon("percent"),
@@ -147,14 +147,43 @@ function(input, output, session) {
   #   )
   # })
 
-  # ## Datatable output for import ####
-  output$key <- renderDataTable({
-    datatable(data_inventory(),
-              options = list(
-                pageLength = 5
-              ),
-              selection = "single")
+  output$year_selection <- renderUI({
+    
+    req(input$site_selection)
+    
+    available_years <- key %>%
+      filter(site_code == input$site_selection) %>%
+      count(year) %>%
+      pull(year)
+    
+    selectInput("year_selection", "Select a year", choices = available_years, multiple = FALSE)
+    
   })
+  
+  output$month_selection <- renderUI({
+    
+    req(input$year_selection)
+    
+    available_months <- key %>%
+      filter(site_code == input$site_selection,
+             year == input$year_selection) %>%
+      count(month) %>%
+      pull(month)
+    
+    selectInput("month_selection", "Select a month", 
+                choices = names(formatted_months)[formatted_months %in% available_months], multiple = FALSE)
+  
+    
+  })
+  
+  # ## Datatable output for import ####
+  # output$key <- renderDataTable({
+  #   datatable(data_inventory(),
+  #             options = list(
+  #               pageLength = 5
+  #             ),
+  #             selection = "single")
+  # })
   
    
   output$start_date <- renderUI({
@@ -166,11 +195,15 @@ function(input, output, session) {
   # Action to take if run query button pressed
   observeEvent(input$loadData, {
     
-    selected_site <- data_inventory()[input$key_rows_selected,]$site_code
-    selected_year <- data_inventory()[input$key_rows_selected,]$year
+    selected_site <- input$site_selection
+    selected_year <- input$year_selection
+    selected_month <- unname(formatted_months[input$month_selection])
     
-      if(length(selected_site) != 0){
-        
+    
+    if(nrow(filter(key, year == selected_year,
+                   month == selected_month,
+                   site_code == selected_site)) > 0){
+      
         con <- DBI::dbConnect(odbc::odbc(),
                               Driver = "MySQL ODBC 8.0 ANSI Driver",
                               Server = "si-mysqlproxy01.si.edu",
@@ -184,7 +217,7 @@ function(input, output, session) {
         
         current_data$df <- wq_dat %>%
           filter(year(timestamp_1min) == selected_year,
-                 month(timestamp_1min) == 4,
+                 month(timestamp_1min) == selected_month,
                  site_code == selected_site) %>%
           collect() %>%
           select(-timestamp) %>%

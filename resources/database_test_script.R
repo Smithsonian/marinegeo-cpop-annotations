@@ -10,10 +10,11 @@ wq_qc_2 <- tbl(con, "water_quality_secondary_flags")
 
 # Get summary (by year) numbers of water quality data
 key <- wq_dat %>%
-  group_by(year(timestamp), site_code) %>%
+  group_by(year(timestamp), month(timestamp), site_code) %>%
   summarize(n = n()) %>%
   collect() %>%
-  rename(year = `year(timestamp)`)
+  rename(year = `year(timestamp)`,
+         month = `month(timestamp)`)
 
 DBI::dbDisconnect(con)
 

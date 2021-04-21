@@ -39,10 +39,11 @@ con <- DBI::dbConnect(odbc::odbc(),
 wq_dat <- tbl(con, "water_quality_l1")
 
 key <- wq_dat %>%
-  group_by(year(timestamp), site_code) %>%
+  group_by(year(timestamp), month(timestamp), site_code) %>%
   summarize(n = n()) %>%
   collect() %>%
-  rename(year = `year(timestamp)`) %>%
+  rename(year = `year(timestamp)`,
+         month = `month(timestamp)`) %>%
   select(-n)
 
 dbDisconnect(con)
@@ -90,6 +91,19 @@ sensor_vector_l1 <- c("Turbidity" = "tu",
 
 qc_flags <- c("-3 (Data rejected due to QAQC)" = -3,
               "1 (Suspect Data)" = 1)
+
+formatted_months <- c("1 - January" = 1,
+                      "2 - February" = 2,
+                      "3 - March" = 3,
+                      "4 - April" = 4,
+                      "5 - May" = 5,
+                      "6 - June" = 6,
+                      "7 - July" = 7,
+                      "8 - August" = 8,
+                      "9 - September" = 9,
+                      "10 - October" = 10,
+                      "11 - November" = 11,
+                      "12 - December" = 12)
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)
