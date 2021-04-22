@@ -6,20 +6,20 @@ function(input, output, session) {
   ## Reactive Objects ####
   # Initiate empty object to hold imported data
   current_data <- reactiveValues(df=data.frame())
-  # reference_data <- reactiveValues(df=data.frame())
-  
+
   # Empty dataframes will hold points selected for level 1 QC flags and level 2 QC flags and codes
   qc_output <- reactiveValues(flags = tibble(observation_id = as.numeric(NA),
                                              parameter = as.character(NA),
                                              flag = as.character(NA),
                                              modified = as.logical(NA),
                                              .rows = 0),
-                              codes = tibble(observation_id = as.numeric(NA),
+                              codes = tibble(code_id = as.numeric(NA),
+                                             observation_id = as.numeric(NA),
                                              parameter = as.character(NA),
-                                             #code = as.character(NA),
                                              main_code = as.character(NA),
                                              comment_code = as.character(NA),
-                                             modified = as.logical(NA),
+                                             main_code_modified = as.logical(NA),
+                                             comment_code_modified = as.logical(NA),
                                              .rows = 0))
 
   flag_summary <- reactive({
@@ -216,6 +216,7 @@ function(input, output, session) {
         
         wq_dat <- tbl(con, "water_quality_l1")
         wq_qc_dat <- tbl(con, "water_quality_primary_flags_backup")
+        wq_codes_dat <- tbl(con, "water_quality_codes")
         
         current_data$df <- wq_dat %>%
           filter(year(timestamp_1min) == selected_year,
@@ -231,10 +232,14 @@ function(input, output, session) {
           filter(observation_id %in% current_ids) %>%
           collect()
         
+        raw_codes <- wq_codes_dat %>%
+          filter(observation_id %in% current_ids) %>%
+          collect()
+        
         dbDisconnect(con)
         
         reference_message("")
-        
+
         # Remove any reference data if it exists
         # reference_data$df <- data.frame()
         
@@ -242,6 +247,12 @@ function(input, output, session) {
           pivot_longer(Turbidity_FNU_f:fDOM_RFU_f, names_to = "parameter", values_to = "flag") %>%
           mutate(modified = F)
     
+        if(nrow(raw_codes) > 0){
+          qc_output$codes <- raw_codes %>%
+            mutate(comment_code_modified = F,
+                   main_code_modified = F)
+        }
+        
         current_site(selected_site)
         current_date_range(paste(strftime(min(current_data$df$timestamp),
                                           '%Y-%m-%d'),
@@ -572,15 +583,18 @@ function(input, output, session) {
     
     # Update existing codes 
     updated_codes <- qc_output$codes %>%
-      mutate(modified = case_when(
-        observation_id %in% selection$df$observation_id &
-          parameter == parameter_flag() & 
-          input$sensor_code_selection != main_code ~ T,
-        observation_id %in% selection$df$observation_id &
-          parameter == parameter_flag() & 
-          comment_code_selection != comment_code ~ T,
-        T ~ modified
-      )) %>%
+      mutate(
+        main_code_modified = case_when(
+          observation_id %in% selection$df$observation_id &
+            parameter == parameter_flag() & 
+            input$sensor_code_selection != main_code ~ T,
+          T ~ main_code_modified),
+        comment_code_modified = case_when(
+          observation_id %in% selection$df$observation_id &
+            parameter == parameter_flag() & 
+            comment_code_selection != comment_code ~ T,
+          T ~ comment_code_modified)
+        ) %>%
       mutate(main_code = case_when(
         observation_id %in% selection$df$observation_id &
           parameter == parameter_flag() ~ input$sensor_code_selection,
@@ -598,9 +612,15 @@ function(input, output, session) {
         observation_id = selection$df$observation_id[!selection$df$observation_id %in% updated_codes$observation_id],
         parameter = parameter_flag(),
         main_code = input$sensor_code_selection,
-        comment_code = comment_code_selection,
-        modified = T
-      )
+        comment_code = comment_code_selection
+      ) %>%
+        mutate(
+          main_code_modified = case_when(
+            !is.na(main_code) ~ T,
+            T ~ F),
+          comment_code_modified = case_when(
+            !is.na(comment_code) ~ T,
+            T ~ F))
       
       qc_output$codes <- bind_rows(updated_codes, new_codes)
     
@@ -714,45 +734,97 @@ function(input, output, session) {
   ## Submit annotations ####
   observeEvent(input$submit_codes, {
 
-    print(head(qc_output$flags))
-    
     output_flags <- qc_output$flags %>%
-      filter(modified) #%>%
-      #select(-modified) %>%
-      #pivot_wider(names_from = "parameter", values_from = "flag")
+      filter(modified) 
 
     con <- getDatabaseConnection()
 
-    for(current_parameter in unique(output_flags$parameter)){
+    if(nrow(output_flags) > 0){
       
-      param_flags <- output_flags %>%
-        filter(parameter == current_parameter)
+      for(current_parameter in unique(output_flags$parameter)){
+        
+        param_flags <- output_flags %>%
+          filter(parameter == current_parameter)
+        
+        for(current_flag in unique(param_flags$flag)){
+          
+          vals <- param_flags %>%
+            filter(flag == current_flag) %>%
+            pull(observation_id)
+          
+          sql <- paste0("UPDATE water_quality_primary_flags_backup SET `", current_parameter, "` = \"", current_flag, "\" WHERE `observation_id` IN (?)")
+          
+          dbSendQuery(con, sql, list(vals))
+        }
+      }
+    }
+    
+    # Quality Control Codes
+    # Step 1 - If code_ID is NA, write those codes
+    new_codes <- qc_output$codes %>%
+      filter(is.na(code_id)) %>%
+      select(-main_code_modified, -comment_code_modified)
+    
+    if(nrow(new_codes) > 0){
+      DBI::dbWriteTable(con,
+                        value = new_codes,
+                        name = "water_quality_codes", append = TRUE)
+    }
+    
+    # Step 2 - Update other modified codes
+    modified_main_codes <- qc_output$codes %>%
+      filter(main_code_modified & !is.na(code_id)) %>%
+      select(-main_code_modified, -comment_code_modified)
+    
+    if(nrow(modified_main_codes) > 0){
       
-      for(current_flag in unique(param_flags$flag)){
+      for(current_code in unique(modified_main_codes$main_code)){
         
-        vals <- param_flags %>%
-          filter(flag == current_flag) %>%
-          pull(observation_id)
+        vals <- modified_main_codes %>%
+          filter(main_code == current_code) %>%
+          pull(code_id)
         
-        sql <- paste0("UPDATE water_quality_primary_flags_backup SET `", current_parameter, "` = \"", current_flag, "\" WHERE `observation_id` IN (?)")
-        
-        print(sql)
+        sql <- paste0("UPDATE water_quality_codes SET `main_code` = \"", current_code, "\" WHERE `code_id` IN (?)")
         
         dbSendQuery(con, sql, list(vals))
+        print(modified_main_codes %>%
+                filter(main_code == current_code))
       }
-      
     }
+    
+    modified_comment_codes <- qc_output$codes %>%
+      filter(comment_code_modified & !is.na(code_id)) %>%
+      select(-main_code_modified, -comment_code_modified)
+    
+    if(nrow(modified_comment_codes) > 0){
+      
+      for(current_code in unique(modified_comment_codes$comment_code)){
+        
+        vals <- modified_comment_codes %>%
+          filter(comment_code == current_code) %>%
+          pull(observation_id)
+        
+        sql <- paste0("UPDATE water_quality_codes SET `comment_code` = \"", current_code, "\" WHERE `observation_id` IN (?)")
+        
+        print(modified_comment_codes %>%
+                filter(comment_code == current_code))
+        dbSendQuery(con, sql, list(vals))
+      }
+    }
+    
+    current_ids <- qc_output$flags$observation_id
+    wq_codes_dat <- tbl(con, "water_quality_codes")
+    
+    qc_output$codes <- wq_codes_dat %>%
+      filter(observation_id %in% current_ids) %>%
+      collect() %>%
+      mutate(main_code_modified = FALSE,
+             comment_code_modified = FALSE)
     
     dbDisconnect(con)
     
-    # system.time(dbSendQuery(con, sql, list(vals)))
-  
-    
     # Reset modified status so if user continues annotating, previous changes are re-sent
     qc_output$flags <- qc_output$flags %>%
-      mutate(modified = FALSE)
-    
-    qc_output$codes <- qc_output$codes %>%
       mutate(modified = FALSE)
     
     showModal(modalDialog(

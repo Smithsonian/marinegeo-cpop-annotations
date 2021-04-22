@@ -290,40 +290,53 @@ flag_subset <- full_qc[1:1000,]
 system.time(DBI::dbWriteTable(con, name = "water_quality_primary_flags", value = flag_subset, append = T))
 
 
-## Old row by row insertion method
-# saveAnnotations <- function(x, table_name){
-#   
-#   con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
-#   
-#   rs <- DBI::dbSendQuery(con, paste0('SHOW COLUMNS FROM ', table_name, ';'))
-#   table_column_names <- DBI::dbFetch(rs)
-#   dbClearResult(rs)
-#   primary_key <- which(table_column_names$Key == "PRI")
-# 
-#   # Single query per row of data
-#   for(i in 1:nrow(x)) {
-#     
-#     # Row of data to vector
-#     dat_values <- sapply(x[i, ], as.character)
-#     
-#     # Insert or update - no rows are deleted
-#     row_query <- paste0("INSERT INTO ",
-#                       table_name,
-#                       "(", paste(table_column_names$Field, collapse = ", "), ") ", # column names
-#                       "VALUES",
-#                       "('", paste(dat_values, collapse = "', '"), "') ", # new records
-#                       "ON DUPLICATE KEY UPDATE ",
-#                       paste(table_column_names$Field[-primary_key], dat_values[-primary_key], sep = " = '", collapse = "', "), 
-#                       "';")
-#     
-#     print(row_query)
-# 
-#     DBI::dbSendQuery(con, row_query)
-#     #print(myquery)
-#     
-#   }
-#   
-#   dbDisconnect(con)
-#   
-# }
 
+## Codes testing
+
+## Append a table - check if autoincrement works (it does)
+code_ex <- tibble(
+  observation_id = c(1, 2, 3), 
+  parameter = c("ct", "tu", "ct"),
+  main_code = c("GCC", "GCM", "GCR"),
+  comment_code = c("HEL", "LOI", "AMM")
+)
+
+con <- DBI::dbConnect(odbc::odbc(), "test data lake db")
+wq_codes <- tbl(con, "water_quality_codes")
+
+DBI::dbWriteTable(con,
+                  value = code_ex,
+                  name = "water_quality_codes", append = TRUE)
+
+wq_codes
+
+# Workflow: Saving codes
+codes <- tibble(
+  code_id = NA,
+  observation_id = c(1, 2, 3), 
+  parameter = c("ct", "tu", "ct"),
+  main_code = c("GCC", "GCM", "GCR"),
+  comment_code = c("HEL", "LOI", "AMM"),
+  modified = c(F, T, F)
+)
+
+
+# Step 1 - If code_ID is NA, write those codes
+
+new_codes <- codes %>%
+  filter(is.na(code_id))
+
+if(nrow(new_codes) > 0){
+  DBI::dbWriteTable(con,
+                    value = new_codes,
+                    name = "water_quality_codes", append = TRUE)
+}
+
+# Step 2 - Update other modified codes
+
+modified_main_codes <- codes %>%
+  filter(main_codes_modified & !is.na(code_id))
+
+
+
+# Step 3 - Regenerate codes dataframe (need to gather assigned code_ids and reset modified)

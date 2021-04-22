@@ -65,7 +65,7 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
           is.na(comment_code) ~ main_code,
           T ~ paste(main_code, comment_code, sep = ", ")
         )) %>%
-        select(-modified, -parameter)
+        select(-c(main_code_modified, comment_code_modified, parameter, code_id))
         #group_by(id) %>%
         #summarize(code = paste(code, collapse = ", "))
     })
