@@ -1,0 +1,8 @@
+﻿value,definition
+-5,Outside high range
+-4,Outside low range
+-3,Data rejected due to QAQC
+-2,Missing Data
+-1,"Optional parameter, not collected"
+0,Passed L1 QC
+1,Suspect Data

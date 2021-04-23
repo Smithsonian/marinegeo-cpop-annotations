@@ -51,6 +51,12 @@ function(input, output, session) {
              filter(!is.na(code)))
   })
   
+  full_dictionary_table <- reactive({
+    full_definitions %>%
+      filter(value %in% code_summary()$code | value %in% flag_summary()$flag)
+    
+  })
+  
   current_site <- reactiveVal(NA) # Site for data currently loaded
   current_date_range <- reactiveVal(NA) # Date range for data currently loaded
   in_progress_qc <- reactiveValues() # Holds decision and outcomes of qc process until user cancels or confirms all decisions
@@ -76,33 +82,11 @@ function(input, output, session) {
   ## Track QC progress info box ####
   current_qc_progress <- reactive({
     "NA"
-    # num_rows <- nrow(current_data$df)
-    # 
-    # if(num_rows > 0){
-    #   sum_qc_rows <- sum(current_data$df$l1_tag_present)
-    #   paste0(round(sum_qc_rows / num_rows * 100), "%")
-    #   
-    # } else {
-    #   "No Data Loaded"
-    # }
   })
   
   ## Subset data inventory ####
   data_inventory <- reactive({
     subset_key <- key
-
-    # if(length(input$site) > 0){
-    #   subset_key <- filter(subset_key,
-    #                        Site %in% input$site)
-    # }
-    # if(length(input$date_range) > 0){
-    #   subset_key <- filter(subset_key,
-    #                        Date %in% input$date_range)
-    # }
-    # if(length(input$file) > 0){
-    #   subset_key <- filter(subset_key,
-    #                        Filename %in% input$file)
-    # }
 
     subset_key
   })
@@ -121,13 +105,26 @@ function(input, output, session) {
         hr(),
         "Quality Control Summary", tags$br(),
         renderTable(flag_summary()),
-        renderTable(code_summary())
+        renderTable(code_summary()),
+        
+        tags$br(),
+        
+        actionLink("abbreviation_dictionary", "Flag and code definitions")
         
       )
     }
   })  
   
-
+  observeEvent(input$abbreviation_dictionary, {
+    
+    showModal(modalDialog(
+      title = "Flag and Code Definitions",
+      div(renderTable(full_dictionary_table())),
+      
+      easyClose = TRUE
+    ))
+    
+  })
   # output$site_info_box <- renderValueBox({
   #   valueBox(
   #     current_site(), "Site", icon = icon("broadcast-tower"),
@@ -314,6 +311,8 @@ function(input, output, session) {
       
       reference_message("Reference points loaded")
       
+      updateTabItems(session, "tabs", "annotate_data")
+      
     } else {
       showModal(modalDialog(
         title = "No Data Selected",
@@ -410,29 +409,30 @@ function(input, output, session) {
   getQualityControlUI <- reactive({
     if(is.null(event_data("plotly_selected"))){
       div(
-        tags$head(
-          tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
-        ),
-        tags$h3("Quality Control Instructions"), tags$br(),
-        tags$ol(
-          tags$li("Select a sensor and parameter above to plot data"),
-          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
-          tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
-          tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
-        )
+        # tags$head(
+        #   tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
+        # ),
+        actionLink("basic_instructions", "Need help getting started?")
+        # tags$h3("Quality Control Instructions"), tags$br(),
+        # tags$ol(
+        #   tags$li("Select a sensor and parameter above to plot data"),
+        #   tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
+        #   tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
+        #   tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
+        # )
       )
     } else if(!is.data.frame(event_data("plotly_selected")) | quality_control_stage() == "only_reference_points_selected"){
       div(
-        tags$head(
-          tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
-        ),
-        tags$h3("Quality Control Instructions"), tags$br(),
-        tags$ol(
-          tags$li("Select a sensor and parameter above to plot data"),
-          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
-          tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
-          tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
-        )
+        # tags$head(
+        #   tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
+        # ),
+        # tags$h3("Quality Control Instructions"), tags$br(),
+        # tags$ol(
+        #   tags$li("Select a sensor and parameter above to plot data"),
+        #   tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
+        #   tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
+        #   tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
+        # )
       )
     } else if(quality_control_stage() == "revise_out_of_bounds"){
       div(id = "accept_flag_div",
@@ -517,7 +517,22 @@ function(input, output, session) {
             div()))
     }
   })
-  # 
+  #
+  
+  observeEvent(input$basic_instructions, {
+    showModal(modalDialog(
+      div(
+        tags$h3("Quality Control Instructions"), tags$br(),
+        tags$ol(
+          tags$li("Select a sensor and parameter above to plot data"),
+          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
+          tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
+          tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
+        )
+      )
+    ))
+  })
+  
   # # Triggers start of QC workflow when a selection event occurs
   observeEvent(!is.null(event_data("plotly_selected")), {
 

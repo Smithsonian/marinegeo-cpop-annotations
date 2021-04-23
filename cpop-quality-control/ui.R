@@ -120,7 +120,7 @@ body <- dashboardBody(
               column(width = 4,
                      box(width = NULL, 
                          status = "primary",
-                         title = "Load data to markup",
+                         title = "Load markup data",
                          
                          # Dropdown selector for sites
                          selectInput("site_selection", "Select a site",
@@ -131,7 +131,11 @@ body <- dashboardBody(
                          uiOutput("month_selection"),
                          
                          # Read in data selected in table
-                         actionButton("loadData", "Load data", class = "btn-primary")
+                         actionButton("loadData", "Load data", class = "btn-primary"), tags$br(), tags$br(),
+                         
+                         "Once the data has loaded (the sidebar to the left will update), ",
+                         "click the \"Annotate Data\" button to visualize the data and begin markup or ", 
+                         "select a range of reference data below."
 
                      ),
                      

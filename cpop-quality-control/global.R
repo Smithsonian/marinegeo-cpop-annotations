@@ -51,6 +51,9 @@ key <- wq_dat %>%
 
 dbDisconnect(con)
 
+flag_definitions <- read_csv("./data/qc_flag_definitions.csv") %>%
+  mutate(value = as.character(value))
+
 sensor_parameters_df <- read_csv("./data/sensor_parameters.csv")
 
 qc_codes <- read_csv("./data/L2_sensor_codes.csv") %>%
@@ -84,7 +87,7 @@ sensor_vector_l1 <- c("Turbidity" = "tu",
                       "EXO2 Sonde" = "ex",
                       "Total Algae" = "ta")
 
-# qc_flags <- c("-5 (Outside high range)" = -5,
+# qc_flags_full <- c("-5 (Outside high range)" = -5,
 #               "-4 (Outside low range)" = -4,
 #               "-3 (Data rejected due to QAQC)" = -3,
 #               "-2 (Missing Data)" = -2,
@@ -107,6 +110,12 @@ formatted_months <- c("1 - January" = 1,
                       "10 - October" = 10,
                       "11 - November" = 11,
                       "12 - December" = 12)
+
+full_definitions <- qc_codes %>%
+  select(code, description) %>%
+  rename(value = code, 
+         definition = description) %>%
+  bind_rows(flag_definitions)
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)
