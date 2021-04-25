@@ -188,9 +188,10 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
                 hover = 'text',
                 key=~plot_id, unselected = list(marker = list(opacity = 1)), type = "scatter", 
                 legendgroup = ~get(label_type())) %>% #,  showlegend = T) %>%
-          
+          config(displaylogo = FALSE, displayModeBar = TRUE) %>%
           layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
                  showlegend = T,
+                 dragmode = "select",
                  yaxis = list(title = plotted_parameter),
                  xaxis = list(title = "", # https://plotly.com/python/reference/layout/xaxis/
                               range = c(start_date(), as.Date(date_range_max())))) %>%

@@ -37,6 +37,9 @@ key <- as_tibble(bundled_directory) %>%
 
 sensor_parameters_df <- read_csv("./data/sensor_parameters.csv")
 
+flag_definitions <- read_csv("./data/qc_flag_definitions.csv") %>%
+  mutate(value = as.character(value))
+
 qc_codes <- read_csv("./data/L2_sensor_codes.csv") %>%
   mutate(select_inputs = paste(code, description, sep=" - ")) %>%
   mutate(code_type = case_when(
@@ -68,7 +71,7 @@ sensor_vector_l1 <- c("Turbidity" = "tu",
                       "EXO2 Sonde" = "ex",
                       "Total Algae" = "ta")
 
-# qc_flags <- c("-5 (Outside high range)" = -5,
+# qc_flags_full <- c("-5 (Outside high range)" = -5,
 #               "-4 (Outside low range)" = -4,
 #               "-3 (Data rejected due to QAQC)" = -3,
 #               "-2 (Missing Data)" = -2,
@@ -78,6 +81,12 @@ sensor_vector_l1 <- c("Turbidity" = "tu",
 
 qc_flags <- c("-3 (Data rejected due to QAQC)" = -3,
                             "1 (Suspect Data)" = 1)
+
+full_definitions <- qc_codes %>%
+  select(code, description) %>%
+  rename(value = code, 
+         definition = description) %>%
+  bind_rows(flag_definitions)
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)

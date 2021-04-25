@@ -80,6 +80,12 @@ function(input, output, session) {
     # }
   })
   
+  full_dictionary_table <- reactive({
+    full_definitions %>%
+      filter(value %in% code_summary()$code | value %in% flag_summary()$flag)
+    
+  })
+  
   ## Subset data inventory ####
   data_inventory <- reactive({
     subset_key <- key
@@ -112,13 +118,27 @@ function(input, output, session) {
         hr(),
         "Quality Control Summary", tags$br(),
         renderTable(flag_summary()),
-        renderTable(code_summary())
-
+        renderTable(code_summary()),
+        
+        tags$br(),
+        
+        actionLink("abbreviation_dictionary", "Flag and code definitions")
+        
       )
     }
   })  
   
-
+  observeEvent(input$abbreviation_dictionary, {
+    
+    showModal(modalDialog(
+      title = "Flag and Code Definitions",
+      div(renderTable(full_dictionary_table())),
+      
+      easyClose = TRUE
+    ))
+    
+  })
+  
   output$site_info_box <- renderValueBox({
     valueBox(
       current_site(), "Site", icon = icon("broadcast-tower"),
@@ -374,29 +394,33 @@ function(input, output, session) {
   getQualityControlUI <- reactive({
     if(is.null(event_data("plotly_selected"))){
       div(
-        tags$head(
-          tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
-        ),
-        tags$h3("Quality Control Instructions"), tags$br(),
-        tags$ol(
-          tags$li("Select a sensor and parameter above to plot data"),
-          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
-          tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
-          tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
-        )
+        actionLink("basic_instructions", "Need help getting started?")
+        
+        # tags$head(
+        #   tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
+        # ),
+        # tags$h3("Quality Control Instructions"), tags$br(),
+        # tags$ol(
+        #   tags$li("Select a sensor and parameter above to plot data"),
+        #   tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
+        #   tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
+        #   tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
+        # )
       )
     } else if(!is.data.frame(event_data("plotly_selected"))){
       div(
-        tags$head(
-          tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
-        ),
-        tags$h3("Quality Control Instructions"), tags$br(),
-        tags$ol(
-          tags$li("Select a sensor and parameter above to plot data"),
-          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
-          tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
-          tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
-        )
+        actionLink("basic_instructions", "Need help getting started?")
+        
+        # tags$head(
+        #   tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css")
+        # ),
+        # tags$h3("Quality Control Instructions"), tags$br(),
+        # tags$ol(
+        #   tags$li("Select a sensor and parameter above to plot data"),
+        #   tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
+        #   tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
+        #   tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
+        # )
       )
     } else if(quality_control_stage() == "revise_out_of_bounds"){
       div(id = "accept_flag_div",
@@ -481,7 +505,21 @@ function(input, output, session) {
             div()))
     }
   })
-  # 
+  
+  observeEvent(input$basic_instructions, {
+    showModal(modalDialog(
+      div(
+        tags$h3("Quality Control Instructions"), tags$br(),
+        tags$ol(
+          tags$li("Select a sensor and parameter above to plot data"),
+          tags$li("Select points using the \"box selection\" or \"lasso selection\" tools on the plot toolbar. Click and drag the selection tool over the points to review and annotate."),
+          tags$li("Review and update primary flags that have been assigned to each point. If the primary flag is -4 or -5, you must provide an updated flag."),
+          tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
+        )
+      )
+    ))
+  })
+  
   # # Triggers start of QC workflow when a selection event occurs
   observeEvent(!is.null(event_data("plotly_selected")), {
 
