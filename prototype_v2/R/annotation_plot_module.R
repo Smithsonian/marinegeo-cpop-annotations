@@ -158,7 +158,7 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
     
     getPlotColors <- reactive({
       
-      color_dictionary <- c("-5" = "#CC6677", "-4" = "#882255", "-3" = "#332288", "-2" = "#DDCC77", "-1" = "grey10",
+      color_dictionary <- c("-5" = "#332288", "-4" = "#882255", "-3" = "#CC6677", "-2" = "#DDCC77", "-1" = "grey10",
                             "0" = "#888888", "1" = "#88CCEE", "2" = "grey50", "3" = "grey20", "4" = "grey30", "5" = "grey40")
       
       color_subset <- color_dictionary[names(color_dictionary) %in% as.character(getPlotLabels())]
