@@ -422,7 +422,7 @@ function(input, output, session) {
         #   tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
         # )
       )
-    } else if(quality_control_stage() == "revise_out_of_bounds"){
+    } else if(quality_control_stage() == "revise out of bounds"){
       div(id = "accept_flag_div",
           tags$h3("Reassign Primary Flags"),
           tags$b(paste(n_flags_unrevised(), "of", total_points_in_selection(), "selected observations have been flagged as out of bounds (-4 or -5). ", sep = " ")),
@@ -444,7 +444,7 @@ function(input, output, session) {
                                     #confirm_revisions{color:white}")))
 
       )
-    } else if (quality_control_stage() == "revise_secondary_flags"){
+    } else if (quality_control_stage() == "revise secondary flags"){
       div(
         tags$h3("Revise Quality Control Flag"),
 
@@ -490,10 +490,10 @@ function(input, output, session) {
     } else if(quality_control_stage() == "update annotations"){
       div(id = "update_annotations_div",
           tags$h3("Update Quality Control Flags and/or Codes"),
-          "All selected observations have up-to-date flags and do not require codes. You may revise either. ",
-          "If you revise flags, you will be given the option to revise the codes.",
+          "You may revise flags or codes. ",
+          "If you revise flags, you will then be given the option to revise the codes.",
           tags$br(), tags$br(),
-
+          
           splitLayout(
             cellWidths = "50%",
             splitLayout(
@@ -502,8 +502,8 @@ function(input, output, session) {
                 actionButton("revise_codes_button", "Revise codes"), tags$br(), tags$br(),
                 actionButton("cancel_selection", "Cancel selection"))
             ),
-            div()))
-    }
+            div()))    
+      }
   })
   
   observeEvent(input$basic_instructions, {
@@ -532,11 +532,11 @@ function(input, output, session) {
       js$collapseBox("plot_controls_box")
       
       if(n_flags_unrevised() > 0){
-        quality_control_stage("revise_out_of_bounds")
+        quality_control_stage("revise out of bounds")
       } else if(all(selection$df$flag == -2)){
         quality_control_stage("revise codes")
       } else{
-        quality_control_stage("revise_secondary_flags")
+        quality_control_stage("update annotations")
       }
     }
   })
@@ -616,6 +616,7 @@ function(input, output, session) {
   observeEvent(input$skip_revising_codes, {
 
     qc_output$flags <- in_progress_qc$flags
+
     runjs("Shiny.setInputValue('plotly_selected-A', null);")
     #js$expandBox("plot_controls_box")
     
@@ -627,7 +628,7 @@ function(input, output, session) {
 
   ## ... revise annotations ####
   observeEvent(input$revise_flags_button, {
-    quality_control_stage("revise flags")
+    quality_control_stage("revise secondary flags")
 
   })
 
