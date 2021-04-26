@@ -187,7 +187,7 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
                 colors = as.character(getPlotColors()),
                 hovertext = ~get(inactive_label()), 
                 hover = 'text',
-                key=~plot_id, unselected = list(marker = list(opacity = 1)), type = "scatter", 
+                key=~plot_id, unselected = list(marker = list(opacity = .75)), type = "scatter", 
                 legendgroup = ~get(label_type())) %>% #,  showlegend = T) %>%
           config(displaylogo = FALSE, displayModeBar = TRUE) %>%
           layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend
