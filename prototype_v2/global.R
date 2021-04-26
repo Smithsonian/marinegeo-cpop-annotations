@@ -83,10 +83,13 @@ qc_flags <- c("-3 (Data rejected due to QAQC)" = -3,
                             "1 (Suspect Data)" = 1)
 
 full_definitions <- qc_codes %>%
-  select(code, description) %>%
+  select(code, description, color) %>%
   rename(value = code, 
          definition = description) %>%
   bind_rows(flag_definitions)
+
+color_dictionary <- full_definitions$color
+names(color_dictionary) <- full_definitions$value
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)

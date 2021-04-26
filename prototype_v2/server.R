@@ -343,7 +343,7 @@ function(input, output, session) {
     return(dat_list)
   })
   
-  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status)
+  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status, color_dictionary)
   
   ## Apply QC logic ####
 

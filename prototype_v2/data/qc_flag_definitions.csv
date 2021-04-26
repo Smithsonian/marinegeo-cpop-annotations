@@ -1,8 +1,8 @@
-﻿value,definition
--5,Outside high range
--4,Outside low range
--3,Data rejected due to QAQC
--2,Missing Data
--1,"Optional parameter, not collected"
-0,Passed L1 QC
-1,Suspect Data
+﻿value,definition,color
+-5,Outside high range,#332288
+-4,Outside low range,#882255
+-3,Data rejected due to QAQC,#CC6677
+-2,Missing Data,#DDCC77
+-1,"Optional parameter, not collected",grey10
+0,Passed L1 QC,#888888
+1,Suspect Data,#88CCEE
