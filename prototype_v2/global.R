@@ -91,6 +91,8 @@ full_definitions <- qc_codes %>%
 color_dictionary <- full_definitions$color
 names(color_dictionary) <- full_definitions$value
 
+color_dictionary <- c(color_dictionary, c("Code not required" = "grey50", "Code required" = "#332288"))
+
 parameters <- sensor_parameters_df %>%
   pull(parameter)
 
