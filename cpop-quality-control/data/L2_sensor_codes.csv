@@ -1,70 +1,73 @@
-﻿valid_for,apply_to,code,description,,notes,origin,
-any_sensor,entire_record,CAB ,algal bloom,,,NERRS,
-any_sensor,entire_record,CAF ,acceptable calibration / accuracy error of sensor,,,NERRS,
-Depth_m,entire_record,CAP ,depth sensor in water; affected by atmospheric pressure,,,NERRS,
-any_sensor,entire_record,CBF ,biofouling,,,NERRS,
-any_sensor,entire_record,CCU ,cause unknown,,,NERRS,
-ODO_sat,entire_record,CDA ,DO hypoxia (<3 mg/L),,,NERRS,
-any_sensor,entire_record,CDB ,disturbed bottom,,,NERRS,
-any_sensor,entire_record,CDF ,data appear to fit conditions,,,NERRS,
-any_sensor,entire_record,CFK ,fish kill,,,NERRS,
-any_sensor,entire_record,CIF,Flotsam present in sample vicinity,,,NERRS,
-any_sensor,entire_record,CIP ,surface ice present at sample station,,,NERRS,
-any_sensor,entire_record,CLE,sample collected later/earlier than schedule,,,NERRS,
-any_sensor,entire_record,CLT ,low tide,,,NERRS,
-any_sensor,entire_record,CMC ,in field maintenance / cleaning,,,NERRS,
-any_sensor,entire_record,CMD ,mud in probe guard,,,NERRS,
-any_sensor,entire_record,CML,snow melt from previous snowfall event,,,NERRS,
-any_sensor,entire_record,CND ,new deployment begins,,,NERRS,
-any_sensor,entire_record,CRE ,significant rain event,,,NERRS,
-any_sensor,entire_record,CRM,significant rain event,,,NERRS,
-any_sensor,entire_record,CSM ,see metadata,,,NERRS,
-any_sensor,entire_record,CTS ,turbidity spike,,,NERRS,
-any_sensor,entire_record,CVT ,possible vandalism/tampering,,,NERRS,
-any_sensor,entire_record,CWD ,data collected at wrong depth,,,NERRS,
-any_sensor,entire_record,CWE ,significant weather event,,,NERRS,
-any_sensor,entire_record,GCC,calculated with data that were corrected during QAQC,,,NERRS,
-any_sensor,entire_record,GCM,calculated value could not be determined due to missing data,,,NERRS,
-any_sensor,entire_record,GCR,calculated value suspect due to questionable data,,,NERRS,
-any_sensor,entire_record,GCU ,calculated value could not be determined due to unavailable data,,,NERRS,
-any_sensor,entire_record,GDM,Data missing or sample never collected,,,NERRS,
-any_sensor,entire_record,GIC ,no instrument deployed due to ice,,,NERRS,
-any_sensor,entire_record,GIM ,instrument malfunction,,,NERRS,
-any_sensor,entire_record,GIT ,instrument recording error; recovered telemetry data,,,NERRS,
-any_sensor,entire_record,GMC ,no instrument deployed due to maintenance/calibration,,,NERRS,
-any_sensor,entire_record,GMT ,instrument maintenance,,,NERRS,
-any_sensor,entire_record,GNF ,deployment tube clogged / no flow,,,NERRS,
-any_sensor,entire_record,GOW ,out of water event,,,NERRS,
-Battery_V,entire_record,GPD ,powered down,,,NERRS,
-Battery_V,entire_record,GPF ,power failure / low battery,,,NERRS,
-any_sensor,entire_record,GQD,data rejected due to QAQC check,,,NERRS,
-any_sensor,entire_record,GQR ,data rejected due to QA/QC checks,,,NERRS,
-any_sensor,entire_record,GQS,data suspect due to QAQC checks,,,NERRS,
-any_sensor,entire_record,GSM ,see metadata,,,NERRS,
-any_sensor,selected_sensor,GWU,incorrect reported measurement unit,,,MarineGEO,
-any_sensor,selected_sensor,SBL,Value below minimum limit of method detection,,,NERRS,
-optic_sensors,selected_sensor,SBO ,blocked optic,,,NERRS,
-any_sensor,selected_sensor,SCB,Calculated value could not be determined due to a below MDL component,,,NERRS,
-any_sensor,selected_sensor,SCC,Calculation with this component resulted in a negative value,,,NERRS,
-Cond_microS_cm,Cond_microS_cm,SCF ,conductivity sensor failure,,,NERRS,
-Depth_m,Depth_m,SDF ,depth port frozen,,,NERRS,
-any_sensor,selected_sensor,SDG ,suspect due to sensor diagnostics,,,NERRS,
-ODO_sat,ODO_sat,SDO ,DO suspect,,,NERRS,
-ODO_sat,ODO_sat,SDP ,DO membrane puncture,,,NERRS,
-any_sensor,selected_sensor,SIC ,"incorrect calibration constant, multiplier or offset",,,NERRS,
-any_sensor,selected_sensor,SIW ,incorrect wiring,,THIS WILL DEPEND ON SET-UPS - is it a situation where there could be incorrect wiring?,NERRS,
-any_sensor,selected_sensor,SMT ,sensor maintenance,,,NERRS,
-any_sensor,selected_sensor,SNV ,negative value,,,NERRS,
-any_sensor,selected_sensor,SOC ,out of calibration,,,NERRS,
-any_sensor,selected_sensor,SOW ,sensor out of water,,,NERRS,
-any_sensor,selected_sensor,SPC ,post calibration out of range,,,NERRS,
-any_sensor,selected_sensor,SQR,data rejected due to QA/QC checks,,,NERRS,
-any_sensor,selected_sensor,SRD,replicated values differ substantially,,,NERRS,
-any_sensor,selected_sensor,SSD ,sensor drift,,,NERRS,
-any_sensor,selected_sensor,SSM ,sensor malfunction,,,NERRS,
-any_sensor,selected_sensor,SSN ,not a number/unknown value,,,NERRS,
-any_sensor,selected_sensor,SSR ,sensor removed / not deployed,,,NERRS,
-Cond_microS_cm,Cond_microS_cm,STF ,catastrophic temperature sensor failure,,,NERRS,
-Turbidity_FNU,Turbidity_FNU,STS ,turbidity spike,,"NOTE important difference from CTS/turbidity spike comment code, which would be used in situation where turb spike influences other sensors/entire record (?)",NERRS,
-any_sensor,selected_sensor,SUL,value above upper limit of method detection,,,NERRS,
-any_sensor,selected_sensor,SWM ,wiper malfunction / loss,,,NERRS,
+﻿valid_for,apply_to,code,description,,notes,origin,color
+any_sensor,entire_record,CAB ,algal bloom,,,NERRS,#7180ac
+any_sensor,entire_record,CAF ,acceptable calibration / accuracy error of sensor,,,NERRS,#2b4570
+Depth_m,entire_record,CAP ,depth sensor in water; affected by atmospheric pressure,,,NERRS,#a8d0db
+any_sensor,entire_record,CBF ,biofouling,,,NERRS,#e49273
+any_sensor,entire_record,CCU ,cause unknown,,,NERRS,#a37a74
+ODO_sat,entire_record,CDA ,DO hypoxia (<3 mg/L),,,NERRS,#1c0f13
+any_sensor,entire_record,CDB ,disturbed bottom,,,NERRS,#6e7e85
+any_sensor,entire_record,CDF ,data appear to fit conditions,,,NERRS,#b7cece
+any_sensor,entire_record,CFK ,fish kill,,,NERRS,#bbbac6
+any_sensor,entire_record,CIF,Flotsam present in sample vicinity,,,NERRS,#e2e2e2
+any_sensor,entire_record,CIP ,surface ice present at sample station,,,NERRS,#efc69b
+any_sensor,entire_record,CLE,sample collected later/earlier than schedule,,,NERRS,#af1b3f
+any_sensor,entire_record,CLT ,low tide,,,NERRS,#473144
+any_sensor,entire_record,CMC ,in field maintenance / cleaning,,,NERRS,#ccb69b
+any_sensor,entire_record,CMD ,mud in probe guard,,,NERRS,#df9b6d
+any_sensor,entire_record,CML,snow melt from previous snowfall event,,,NERRS,#bffff1
+any_sensor,entire_record,CND ,new deployment begins,,,NERRS,#7cffcb
+any_sensor,entire_record,CRE ,significant rain event,,,NERRS,#74f2ce
+any_sensor,entire_record,CRM,significant rain event,,,NERRS,#379634
+any_sensor,entire_record,CSM ,see metadata,,,NERRS,#0a3200
+any_sensor,entire_record,CTS ,turbidity spike,,,NERRS,#96adc8
+any_sensor,entire_record,CVT ,possible vandalism/tampering,,,NERRS,#d7ffab
+any_sensor,entire_record,CWD ,data collected at wrong depth,,,NERRS,#fcff6c
+any_sensor,entire_record,CWE ,significant weather event,,,NERRS,#d89d6a
+any_sensor,entire_record,GCC,calculated with data that were corrected during QAQC,,,NERRS,#6d454c
+any_sensor,entire_record,GCM,calculated value could not be determined due to missing data,,,NERRS,#7180ac
+any_sensor,entire_record,GCR,calculated value suspect due to questionable data,,,NERRS,#2b4570
+any_sensor,entire_record,GCU ,calculated value could not be determined due to unavailable data,,,NERRS,#a8d0db
+any_sensor,entire_record,GDM,Data missing or sample never collected,,,NERRS,#e49273
+any_sensor,entire_record,GIC ,no instrument deployed due to ice,,,NERRS,#a37a74
+any_sensor,entire_record,GIM ,instrument malfunction,,,NERRS,#1c0f13
+any_sensor,entire_record,GIT ,instrument recording error; recovered telemetry data,,,NERRS,#6e7e85
+any_sensor,entire_record,GMC ,no instrument deployed due to maintenance/calibration,,,NERRS,#b7cece
+any_sensor,entire_record,GMT ,instrument maintenance,,,NERRS,#bbbac6
+any_sensor,entire_record,GNF ,deployment tube clogged / no flow,,,NERRS,#e2e2e2
+any_sensor,entire_record,GOW ,out of water event,,,NERRS,#efc69b
+Battery_V,entire_record,GPD ,powered down,,,NERRS,#af1b3f
+Battery_V,entire_record,GPF ,power failure / low battery,,,NERRS,#473144
+any_sensor,entire_record,GQD,data rejected due to QAQC check,,,NERRS,#ccb69b
+any_sensor,entire_record,GQR ,data rejected due to QA/QC checks,,,NERRS,#df9b6d
+any_sensor,entire_record,GQS,data suspect due to QAQC checks,,,NERRS,#bffff1
+any_sensor,entire_record,GSM ,see metadata,,,NERRS,#7cffcb
+any_sensor,selected_sensor,GWU,incorrect reported measurement unit,,,MarineGEO,#74f2ce
+any_sensor,selected_sensor,SBL,Value below minimum limit of method detection,,,NERRS,#379634
+optic_sensors,selected_sensor,SBO ,blocked optic,,,NERRS,#0a3200
+any_sensor,selected_sensor,SCB,Calculated value could not be determined due to a below MDL component,,,NERRS,#96adc8
+any_sensor,selected_sensor,SCC,Calculation with this component resulted in a negative value,,,NERRS,#d7ffab
+Cond_microS_cm,Cond_microS_cm,SCF ,conductivity sensor failure,,,NERRS,#fcff6c
+Depth_m,Depth_m,SDF ,depth port frozen,,,NERRS,#d89d6a
+any_sensor,selected_sensor,SDG ,suspect due to sensor diagnostics,,,NERRS,#6d454c
+ODO_sat,ODO_sat,SDO ,DO suspect,,,NERRS,#7180ac
+ODO_sat,ODO_sat,SDP ,DO membrane puncture,,,NERRS,#2b4570
+any_sensor,selected_sensor,SIC ,"incorrect calibration constant, multiplier or offset",,,NERRS,#a8d0db
+any_sensor,selected_sensor,SIW ,incorrect wiring,,THIS WILL DEPEND ON SET-UPS - is it a situation where there could be incorrect wiring?,NERRS,#e49273
+any_sensor,selected_sensor,SMT ,sensor maintenance,,,NERRS,#a37a74
+any_sensor,selected_sensor,SNV ,negative value,,,NERRS,#1c0f13
+any_sensor,selected_sensor,SOC ,out of calibration,,,NERRS,#6e7e85
+any_sensor,selected_sensor,SOW ,sensor out of water,,,NERRS,#b7cece
+any_sensor,selected_sensor,SPC ,post calibration out of range,,,NERRS,#bbbac6
+any_sensor,selected_sensor,SQR,data rejected due to QA/QC checks,,,NERRS,#e2e2e2
+any_sensor,selected_sensor,SRD,replicated values differ substantially,,,NERRS,#efc69b
+any_sensor,selected_sensor,SSD ,sensor drift,,,NERRS,#af1b3f
+any_sensor,selected_sensor,SSM ,sensor malfunction,,,NERRS,#473144
+any_sensor,selected_sensor,SSN ,not a number/unknown value,,,NERRS,#ccb69b
+any_sensor,selected_sensor,SSR ,sensor removed / not deployed,,,NERRS,#df9b6d
+Cond_microS_cm,Cond_microS_cm,STF ,catastrophic temperature sensor failure,,,NERRS,#bffff1
+Turbidity_FNU,Turbidity_FNU,STS ,turbidity spike,,"NOTE important difference from CTS/turbidity spike comment code, which would be used in situation where turb spike influences other sensors/entire record (?)",NERRS,#7cffcb
+any_sensor,selected_sensor,SUL,value above upper limit of method detection,,,NERRS,#74f2ce
+any_sensor,selected_sensor,SWM ,wiper malfunction / loss,,,NERRS,#379634
+any_sensor,selected_sensor,CMG,needs MarineGEO Central review,,,MarineGEO,#0a3200
+any_sensor,selected_sensor,GDB,Pre-deployment points,,,MarineGEO,
+any_sensor,selected_sensor,GDE,Post-deployment points,,,MarineGEO,

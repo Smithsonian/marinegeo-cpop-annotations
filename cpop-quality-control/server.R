@@ -371,7 +371,7 @@ function(input, output, session) {
     return(dat_list)
   })
   
-  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status)
+  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status, color_dictionary)
   
   ## Apply QC logic ####
 
@@ -434,7 +434,7 @@ function(input, output, session) {
         #   tags$li("Assign quality control codes that provide additional context to the flag. Apply either a general or sensor-specific code. You can also tag points with one or more comment codes that provide additional context.")
         # )
       )
-    } else if(quality_control_stage() == "revise_out_of_bounds"){
+    } else if(quality_control_stage() == "revise out of bounds"){
       div(id = "accept_flag_div",
           tags$h3("Reassign Primary Flags"),
           tags$b(paste(n_flags_unrevised(), "of", total_points_in_selection(), "selected observations have been flagged as out of bounds (-4 or -5). ", sep = " ")),
@@ -456,7 +456,7 @@ function(input, output, session) {
                                     #confirm_revisions{color:white}")))
 
       )
-    } else if (quality_control_stage() == "revise_secondary_flags"){
+    } else if (quality_control_stage() == "revise secondary flags"){
       div(
         tags$h3("Revise Quality Control Flag"),
 
@@ -502,8 +502,8 @@ function(input, output, session) {
     } else if(quality_control_stage() == "update annotations"){
       div(id = "update_annotations_div",
           tags$h3("Update Quality Control Flags and/or Codes"),
-          "All selected observations have up-to-date flags and do not require codes. You may revise either. ",
-          "If you revise flags, you will be given the option to revise the codes.",
+          "You may revise flags or codes. ",
+          "If you revise flags, you will then be given the option to revise the codes.",
           tags$br(), tags$br(),
 
           splitLayout(
@@ -552,11 +552,11 @@ function(input, output, session) {
         js$collapseBox("plot_controls_box")
         
         if(n_flags_unrevised() > 0){
-          quality_control_stage("revise_out_of_bounds")
+          quality_control_stage("revise out of bounds")
         } else if(all(selection$df$flag == -2)){
           quality_control_stage("revise codes")
         } else{
-          quality_control_stage("revise_secondary_flags")
+          quality_control_stage("update annotations")
         }
         
       }
@@ -587,64 +587,79 @@ function(input, output, session) {
 
   ## ... Confirm Codes ####
   observeEvent(input$confirm_codes, {
-
-    qc_output$flags <- in_progress_qc$flags
-
-    if(input$comment_code_selection == ""){
-      comment_code_selection <- NA_character_
-    } else {
-      comment_code_selection <- input$comment_code_selection
-    }
     
-    # Update existing codes 
-    updated_codes <- qc_output$codes %>%
-      mutate(
-        main_code_modified = case_when(
-          observation_id %in% selection$df$observation_id &
-            parameter == parameter_flag() & 
-            input$sensor_code_selection != main_code ~ T,
-          T ~ main_code_modified),
-        comment_code_modified = case_when(
-          observation_id %in% selection$df$observation_id &
-            parameter == parameter_flag() & 
-            comment_code_selection != comment_code ~ T,
-          T ~ comment_code_modified)
-        ) %>%
-      mutate(main_code = case_when(
-        observation_id %in% selection$df$observation_id &
-          parameter == parameter_flag() ~ input$sensor_code_selection,
-        T ~ main_code
-      )) %>%
-      mutate(comment_code = case_when(
-        observation_id %in% selection$df$observation_id &
-          parameter == parameter_flag() ~ comment_code_selection,
-        T ~ comment_code
-      )) 
+    # If no code inputs selected, cancel
+    if(input$comment_code_selection == "" & input$sensor_code_selection == ""){
+      showModal(modalDialog(
+        div("Don't forget to select at least one code!"),
+        
+        easyClose = TRUE
+      ))
+    } else{
       
-    if(length(selection$df$observation_id[!selection$df$observation_id %in% updated_codes$observation_id]) > 0){
-      # Create new rows if observation dobservation_id not have any pre-existing codes
-      new_codes <- tibble(
-        observation_id = selection$df$observation_id[!selection$df$observation_id %in% updated_codes$observation_id],
-        parameter = parameter_flag(),
-        main_code = input$sensor_code_selection,
-        comment_code = comment_code_selection
-      ) %>%
+      qc_output$flags <- in_progress_qc$flags
+      
+      if(input$comment_code_selection == ""){
+        comment_code_selection <- NA_character_
+      } else {
+        comment_code_selection <- input$comment_code_selection
+      }
+      
+      if(input$sensor_code_selection == ""){
+        sensor_code_selection <- NA_character_
+      } else {
+        sensor_code_selection <- input$sensor_code_selection
+      }
+      
+      # Update existing codes 
+      updated_codes <- qc_output$codes %>%
         mutate(
           main_code_modified = case_when(
-            !is.na(main_code) ~ T,
-            T ~ F),
+            observation_id %in% selection$df$observation_id &
+              parameter == parameter_flag() & 
+              sensor_code_selection != main_code ~ T,
+            T ~ main_code_modified),
           comment_code_modified = case_when(
-            !is.na(comment_code) ~ T,
-            T ~ F))
+            observation_id %in% selection$df$observation_id &
+              parameter == parameter_flag() & 
+              comment_code_selection != comment_code ~ T,
+            T ~ comment_code_modified)
+        ) %>%
+        mutate(main_code = case_when(
+          observation_id %in% selection$df$observation_id &
+            parameter == parameter_flag() ~ input$sensor_code_selection,
+          T ~ main_code
+        )) %>%
+        mutate(comment_code = case_when(
+          observation_id %in% selection$df$observation_id &
+            parameter == parameter_flag() ~ comment_code_selection,
+          T ~ comment_code
+        )) 
       
-      qc_output$codes <- bind_rows(updated_codes, new_codes)
-    
-    } else {
-      qc_output$codes <- updated_codes
+      if(length(selection$df$observation_id[!selection$df$observation_id %in% updated_codes$observation_id]) > 0){
+        # Create new rows if observation dobservation_id not have any pre-existing codes
+        new_codes <- tibble(
+          observation_id = selection$df$observation_id[!selection$df$observation_id %in% updated_codes$observation_id],
+          parameter = parameter_flag(),
+          main_code = sensor_code_selection,
+          comment_code = comment_code_selection
+        ) %>%
+          mutate(
+            main_code_modified = case_when(
+              !is.na(main_code) ~ T,
+              T ~ F),
+            comment_code_modified = case_when(
+              !is.na(comment_code) ~ T,
+              T ~ F))
+        
+        qc_output$codes <- bind_rows(updated_codes, new_codes)
+        
+      } else {
+        qc_output$codes <- updated_codes
+      }
+      
+      runjs("Shiny.setInputValue('plotly_selected-A', null);")
     }
-    
-    runjs("Shiny.setInputValue('plotly_selected-A', null);")
-    
   })
 
   observeEvent(input$skip_revising_codes, {
@@ -660,8 +675,8 @@ function(input, output, session) {
 
   ## ... revise annotations ####
   observeEvent(input$revise_flags_button, {
-    quality_control_stage("revise flags")
-
+    quality_control_stage("revise secondary flags")
+    
   })
 
   observeEvent(input$revise_codes_button,{

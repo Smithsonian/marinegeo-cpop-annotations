@@ -63,6 +63,7 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
         filter(parameter == input$parameter_qc) %>%
         mutate(code = case_when(
           is.na(comment_code) ~ main_code,
+          is.na(main_code) ~ comment_code,
           T ~ paste(main_code, comment_code, sep = ", ")
         )) %>%
         select(-c(main_code_modified, comment_code_modified, parameter, code_id))
@@ -142,7 +143,7 @@ annotation_plot_UI <- function(id){
   )
 }
 
-annotation_plot_server <- function(id, plotting_data, label_type, start_date, date_range_max, reset_plot_status){
+annotation_plot_server <- function(id, plotting_data, label_type, start_date, date_range_max, reset_plot_status, color_dictionary){
 
   moduleServer(id, function(input, output, session) {
 
@@ -177,8 +178,8 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
 
     getPlotColors <- reactive({
 
-      color_dictionary <- c("-5" = "#CC6677", "-4" = "#882255", "-3" = "#332288", "-2" = "#DDCC77", "-1" = "grey10",
-                            "0" = "#6699CC", "1" = "#88CCEE", "2" = "grey50", "3" = "grey20", "4" = "grey30", "5" = "grey40", "Ref" = "#888888")
+      # color_dictionary <- c("-5" = "#CC6677", "-4" = "#882255", "-3" = "#332288", "-2" = "#DDCC77", "-1" = "grey10",
+      #                       "0" = "#6699CC", "1" = "#88CCEE", "2" = "grey50", "3" = "grey20", "4" = "grey30", "5" = "grey40", "Ref" = "#888888")
       
       color_subset <- color_dictionary[names(color_dictionary) %in% as.character(getPlotLabels())]
       color_subset_ordered <- color_subset[order(factor(names(color_subset), levels = as.character(getPlotLabels())))]
@@ -205,7 +206,7 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
                 colors = as.character(getPlotColors()),
                 hovertext = ~get(inactive_label()),
                 hover = 'text',
-                key=~plot_id, unselected = list(marker = list(opacity = 1)), type = "scatter",
+                key=~plot_id, unselected = list(marker = list(opacity = .75)), type = "scatter",
                 legendgroup = ~get(label_type())) %>% #,  showlegend = T) %>%
           config(displaylogo = FALSE, displayModeBar = TRUE) %>%
           layout(legend = list(orientation = 'h'), # https://plotly.com/python/reference/layout/#layout-legend

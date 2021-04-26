@@ -112,10 +112,14 @@ formatted_months <- c("1 - January" = 1,
                       "12 - December" = 12)
 
 full_definitions <- qc_codes %>%
-  select(code, description) %>%
+  select(code, description, color) %>%
   rename(value = code, 
          definition = description) %>%
   bind_rows(flag_definitions)
+
+color_dictionary <- full_definitions$color
+names(color_dictionary) <- full_definitions$value
+color_dictionary <- c(color_dictionary, c("Code not required" = "grey50", "Code required" = "#332288"))
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)
