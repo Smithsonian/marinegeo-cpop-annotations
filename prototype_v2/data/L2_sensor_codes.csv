@@ -69,3 +69,5 @@ Turbidity_FNU,Turbidity_FNU,STS ,turbidity spike,,"NOTE important difference fro
 any_sensor,selected_sensor,SUL,value above upper limit of method detection,,,NERRS,#74f2ce
 any_sensor,selected_sensor,SWM ,wiper malfunction / loss,,,NERRS,#379634
 any_sensor,selected_sensor,CMG,needs MarineGEO Central review,,,MarineGEO,#0a3200
+any_sensor,selected_sensor,GDB,Pre-deployment points,,,MarineGEO,
+any_sensor,selected_sensor,GDE,Post-deployment points,,,MarineGEO,
