@@ -369,7 +369,7 @@ function(input, output, session) {
     selected_sensor <- sensor_parameters_df %>%
       filter(parameter == selected_parameter) %>%
       pull(sensor_abbreviation)
-    
+                                
     sensor_flag(selected_sensor)
     
     return(dat)
@@ -588,29 +588,41 @@ function(input, output, session) {
 
     qc_output$flags <- in_progress_qc$flags
 
-    if(input$comment_code_selection == ""){
-      selected_codes <- c(input$sensor_code_selection)
-    } else {
-      selected_codes <- c(input$sensor_code_selection, input$comment_code_selection)
-    }
-    
-    revised_codes <- data.frame()
-    for(selected_code in selected_codes){
-      revised_codes <- selection$df %>%
-        select(ID) %>%
-        mutate(sensor = sensor_flag(),
-               code = selected_code,
-               ID = as.character(ID)) %>%
+    # If no code inputs selected, cancel
+    if(input$comment_code_selection == "" & input$sensor_code_selection == ""){
+      showModal(modalDialog(
+        div("Don't forget to select at least one code!"),
+        
+        easyClose = TRUE
+      ))
+      
+    } else{
+      
+      if(input$comment_code_selection == ""){
+        selected_codes <- input$sensor_code_selection
+      } else if(input$sensor_code_selection == ""){
+        selected_codes <- input$comment_code_selection
+      } else{
+        selected_codes <- c(input$sensor_code_selection, input$comment_code_selection)
+      }
+      
+      revised_codes <- data.frame()
+      for(selected_code in selected_codes){
+        revised_codes <- selection$df %>%
+          select(ID) %>%
+          mutate(sensor = sensor_flag(),
+                 code = selected_code,
+                 ID = as.character(ID)) %>%
+          bind_rows(revised_codes)
+      }
+      
+      qc_output$codes <- qc_output$codes %>%
+        filter(!(ID %in% selection$df$ID & sensor == sensor_flag())) %>%
         bind_rows(revised_codes)
+      
+      #js$expandBox("plot_controls_box")
+      runjs("Shiny.setInputValue('plotly_selected-A', null);")
     }
-
-    qc_output$codes <- qc_output$codes %>%
-      filter(!(ID %in% selection$df$ID & sensor == sensor_flag())) %>%
-      bind_rows(revised_codes)
-
-    #js$expandBox("plot_controls_box")
-    runjs("Shiny.setInputValue('plotly_selected-A', null);")
-    
   })
 
   observeEvent(input$skip_revising_codes, {
