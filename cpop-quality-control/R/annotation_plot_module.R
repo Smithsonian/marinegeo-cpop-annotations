@@ -143,7 +143,7 @@ annotation_plot_UI <- function(id){
   )
 }
 
-annotation_plot_server <- function(id, plotting_data, label_type, start_date, date_range_max, reset_plot_status, color_dictionary){
+annotation_plot_server <- function(id, plotting_data, label_type, start_date, date_range_max, reset_plot_status, color_dictionary_flags){
 
   moduleServer(id, function(input, output, session) {
 
@@ -178,13 +178,17 @@ annotation_plot_server <- function(id, plotting_data, label_type, start_date, da
 
     getPlotColors <- reactive({
 
-      # color_dictionary <- c("-5" = "#CC6677", "-4" = "#882255", "-3" = "#332288", "-2" = "#DDCC77", "-1" = "grey10",
-      #                       "0" = "#6699CC", "1" = "#88CCEE", "2" = "grey50", "3" = "grey20", "4" = "grey30", "5" = "grey40", "Ref" = "#888888")
-      
-      color_subset <- color_dictionary[names(color_dictionary) %in% as.character(getPlotLabels())]
-      color_subset_ordered <- color_subset[order(factor(names(color_subset), levels = as.character(getPlotLabels())))]
-
-      return(color_subset_ordered)
+      # Only return color matches if the label type is flag 
+      # codes are generated on the fly for the legend (main and comment codes are pasted together) and cannot be predetermined
+      if(label_type() == "flag"){
+        color_subset <- color_dictionary_flags[names(color_dictionary_flags) %in% as.character(getPlotLabels())]
+        color_subset_ordered <- color_subset[order(factor(names(color_subset), levels = as.character(getPlotLabels())))]
+        
+        return(color_subset_ordered)
+        
+      } else{
+        return(NULL)
+      }
     })
 
     output$plot_qc <- renderPlotly({
