@@ -51,6 +51,7 @@ function(input, output, session) {
   # sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
   view_mode <- reactive({input$view_mode})
   start_date <- reactive({input$start_date})
+  label_type <- reactive({input$label_mode})
   
   reset_plot_status <- reactiveVal(0)
   
@@ -296,11 +297,6 @@ function(input, output, session) {
     }
   })
   
-  # # Reformats label_mode input for plotly color argument (ex: Codes to code)
-  label_type <- reactive({
-    gsub("s", "", tolower(input$label_mode))
-  })
-  
   date_range_max <- reactive({
 
     if(input$date_interval == "All data"){
@@ -343,7 +339,7 @@ function(input, output, session) {
     return(dat_list)
   })
   
-  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status, color_dictionary)
+  selections <- annotation_plot_server("plot", plotting_data, label_type, start_date, date_range_max, reset_plot_status, color_dictionary_flags)
   
   ## Apply QC logic ####
 

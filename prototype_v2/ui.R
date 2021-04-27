@@ -187,8 +187,8 @@ body <- dashboardBody(
                            
                            div(class = "plot_controls",
                                radioButtons("label_mode", "Plot labels",
-                                            choices = c("Flags",
-                                                        "Codes"))
+                                            choices = c("Flags" = "flag",
+                                                        "Codes" = "code"))
                            ),
                            div(class = "plot_controls",
                                selectInput("view_mode", "Show:",
