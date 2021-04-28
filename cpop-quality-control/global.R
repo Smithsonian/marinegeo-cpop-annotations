@@ -17,8 +17,8 @@ library(plotly)
 library(shinyjs)
 library(DBI)
 
-app_location <- "local"
-#app_location <- "shiny_server"
+#app_location <- "local"
+app_location <- "shiny_server"
 
 if(app_location == "shiny_server"){
   library(dbplyr, lib.loc = "/home/lonnemanm/library")
@@ -112,14 +112,15 @@ formatted_months <- c("1 - January" = 1,
                       "12 - December" = 12)
 
 full_definitions <- qc_codes %>%
-  select(code, description, color) %>%
+  select(code, description) %>%
   rename(value = code, 
          definition = description) %>%
-  bind_rows(flag_definitions)
+  bind_rows(flag_definitions) %>%
+  select(-color)
 
 color_dictionary_flags <- flag_definitions$color
 names(color_dictionary_flags) <- flag_definitions$value
-#color_dictionary <- c(color_dictionary, c("Code not required" = "grey50", "Code required" = "#332288"))
+color_dictionary_flags <- c(color_dictionary_flags, c("Ref" = "grey50"))
 
 parameters <- sensor_parameters_df %>%
   pull(parameter)

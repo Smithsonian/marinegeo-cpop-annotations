@@ -154,10 +154,10 @@ body <- dashboardBody(
               column(width = 8,
                      box(width = NULL,
                          status = "primary",
-                         title = "Select and load data",
+                         #title = "Select and load data",
                          
                          div(
-                           tags$b("Click a row in the table and then \"Load data\" to load the data into the application")
+                           #tags$b("Click a row in the table and then \"Load data\" to load the data into the application")
                          ),
                          
                          tags$br(), tags$br(),
@@ -205,12 +205,12 @@ body <- dashboardBody(
                                             choices = c("Flags" = "flag",
                                                         "Codes" = "code"))
                            ),
-                           div(class = "plot_controls",
-                               selectInput("view_mode", "Show:",
-                                           choices = c("All points",
-                                                       "Flags that require review",
-                                                       "Points that require codes"))
-                           ),
+                           # div(class = "plot_controls",
+                           #     selectInput("view_mode", "Show:",
+                           #                 choices = c("All points",
+                           #                             "Flags that require review",
+                           #                             "Points that require codes"))
+                           # ),
                            div(class = "plot_controls",
                                uiOutput("start_date"),
                                selectInput("date_interval", label = "Select a date interval", 

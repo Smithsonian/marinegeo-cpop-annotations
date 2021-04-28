@@ -4,5 +4,5 @@
 -3,Data rejected due to QAQC,#CC6677
 -2,Missing Data,#DDCC77
 -1,"Optional parameter, not collected",grey10
-0,Passed L1 QC,#888888
+0,Passed L1 QC,grey20
 1,Suspect Data,#88CCEE

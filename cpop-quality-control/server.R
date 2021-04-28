@@ -62,7 +62,7 @@ function(input, output, session) {
   in_progress_qc <- reactiveValues() # Holds decision and outcomes of qc process until user cancels or confirms all decisions
   
   # Formatted name of selected sensors (transformed from UI-friendly versions)
-  view_mode <- reactive({input$view_mode})
+  #view_mode <- reactive({input$view_mode})
   start_date <- reactive({input$start_date})
   label_type <- reactive({input$label_mode})
   
@@ -213,7 +213,7 @@ function(input, output, session) {
                               PWD = Sys.getenv('password'))
         
         wq_dat <- tbl(con, "water_quality_l1")
-        wq_qc_dat <- tbl(con, "water_quality_primary_flags_backup")
+        wq_qc_dat <- tbl(con, "water_quality_expert_flags")
         wq_codes_dat <- tbl(con, "water_quality_codes")
         
         current_data$df <- wq_dat %>%
@@ -276,6 +276,7 @@ function(input, output, session) {
   
   reference_message <- reactiveVal("")
   
+  ## Load reference data ####
   observeEvent(input$loadReferenceData, {
     
     if(nrow(current_data$df) > 0){
@@ -341,8 +342,8 @@ function(input, output, session) {
   # Generate a plot of the data 
   #output$plot_qc <- renderPlotly({
   #plot_object_1 <- annotation_plot_server("plot_1", "Plot 1: Select a parameter", current_data$df)
-  data_plot_1 <- annotation_controls_server("control_plot_1", current_data, qc_output, view_mode) # UI controls
-  data_plot_2 <- annotation_controls_server("control_plot_2", current_data, qc_output, view_mode) # UI controls
+  data_plot_1 <- annotation_controls_server("control_plot_1", current_data, qc_output) # UI controls
+  data_plot_2 <- annotation_controls_server("control_plot_2", current_data, qc_output) # UI controls
   
   # Combine output from annotation control server into a single list
   # Drop empty list objects so they don't get evaluated by the plot module
@@ -778,7 +779,7 @@ function(input, output, session) {
             filter(flag == current_flag) %>%
             pull(observation_id)
           
-          sql <- paste0("UPDATE water_quality_primary_flags_backup SET `", current_parameter, "` = \"", current_flag, "\" WHERE `observation_id` IN (?)")
+          sql <- paste0("UPDATE water_quality_expert_flags SET `", current_parameter, "` = \"", current_flag, "\" WHERE `observation_id` IN (?)")
           
           dbSendQuery(con, sql, list(vals))
         }

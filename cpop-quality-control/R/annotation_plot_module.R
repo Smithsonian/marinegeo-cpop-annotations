@@ -15,7 +15,7 @@ annotation_controls_UI <- function(id){
 }
       
       
-annotation_controls_server <- function(id, current_data, qc_output, view_mode){
+annotation_controls_server <- function(id, current_data, qc_output){
   
   moduleServer(id, function(input, output, session) {
     
@@ -119,14 +119,14 @@ annotation_controls_server <- function(id, current_data, qc_output, view_mode){
 
         
 
-      if(view_mode() == "Flags that require review"){
-        df <- df %>%
-          filter(flag %in% c(-4, -5))
-
-      } else if(view_mode() == "Points that require codes"){
-        df <- df %>%
-          filter(code == "Code required")
-      }
+      # if(view_mode() == "Flags that require review"){
+      #   df <- df %>%
+      #     filter(flag %in% c(-4, -5))
+      # 
+      # } else if(view_mode() == "Points that require codes"){
+      #   df <- df %>%
+      #     filter(code == "Code required")
+      # }
       
       return(df)
     })
