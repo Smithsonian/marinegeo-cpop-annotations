@@ -83,10 +83,11 @@ qc_flags <- c("-3 (Data rejected due to QAQC)" = -3,
                             "1 (Suspect Data)" = 1)
 
 full_definitions <- qc_codes %>%
-  select(code, description, color) %>%
+  select(code, description) %>%
   rename(value = code, 
          definition = description) %>%
-  bind_rows(flag_definitions)
+  bind_rows(flag_definitions) %>%
+  select(-color)
 
 color_dictionary_flags <- flag_definitions$color
 names(color_dictionary_flags) <- flag_definitions$value

@@ -49,7 +49,7 @@ function(input, output, session) {
   
   # Formatted name of selected sensors (transformed from UI-friendly versions)
   # sensor_flag <- reactive(unname(sensor_vector_l1[input$sensor_qc])) # Name of sensor in QC columns 
-  view_mode <- reactive({input$view_mode})
+  #view_mode <- reactive({input$view_mode})
   start_date <- reactive({input$start_date})
   label_type <- reactive({input$label_mode})
   
@@ -313,8 +313,8 @@ function(input, output, session) {
   # Generate a plot of the data 
   #output$plot_qc <- renderPlotly({
   #plot_object_1 <- annotation_plot_server("plot_1", "Plot 1: Select a parameter", current_data$df)
-  data_plot_1 <- annotation_controls_server("control_plot_1", current_data, qc_output, view_mode) # UI controls
-  data_plot_2 <- annotation_controls_server("control_plot_2", current_data, qc_output, view_mode) # UI controls
+  data_plot_1 <- annotation_controls_server("control_plot_1", current_data, qc_output) # UI controls
+  data_plot_2 <- annotation_controls_server("control_plot_2", current_data, qc_output) # UI controls
   
   # Combine output from annotation control server into a single list
   # Drop empty list objects so they don't get evaluated by the plot module

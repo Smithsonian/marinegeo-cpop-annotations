@@ -190,12 +190,12 @@ body <- dashboardBody(
                                             choices = c("Flags" = "flag",
                                                         "Codes" = "code"))
                            ),
-                           div(class = "plot_controls",
-                               selectInput("view_mode", "Show:",
-                                           choices = c("All points",
-                                                       "Flags that require review",
-                                                       "Points that require codes"))
-                           ),
+                           # div(class = "plot_controls",
+                           #     selectInput("view_mode", "Show:",
+                           #                 choices = c("All points",
+                           #                             "Flags that require review",
+                           #                             "Points that require codes"))
+                           # ),
                            div(class = "plot_controls",
                                uiOutput("start_date"),
                                selectInput("date_interval", label = "Select a date interval", 
