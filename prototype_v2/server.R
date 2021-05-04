@@ -776,4 +776,136 @@ function(input, output, session) {
 
   })
 
+  ## Submission code ####
+  
+  # Submission time will store the time a user initially submits data using the humanTime function
+  submission_time <- reactiveVal(0)
+  
+  # Holds ID to be appended to outputs
+  getSubmissionID <- reactiveVal(NA)
+  
+  # Dataframe to hold significant event details associated with deployments
+  significant_events <- reactiveValues(df = tibble(
+    event_date = NA_character_,
+    event_description = NA_character_,
+    .rows = 0
+  ))
+  
+  # Dataframe that inventories the filenames of items provided to the fileInputs.
+  # Status reflects what to do with each item
+  uploaded_files <- reactiveValues(df = tibble(
+    file_type = NA_character_, # Calibration or Korexo file
+    filename = NA_character_,
+    datapath = NA_character_,
+    status = NA_character_, # Not processed, invalid file type, duplicate, processed
+    .rows = 0
+  ))
+  
+  # Lists to hold output of calibration file processing.
+  # Each valid calibration file will have a named dataframe object in each list
+  calibration_uploads <- reactiveValues(
+    log = list(),
+    points = list(),
+    log_df = data.frame(),
+    points_df = data.frame()
+  )
+  
+  ## Initial upload page ####
+  
+  # If the user is modifying an existing deployment, a select input appears with available deployments
+  output$select_existing_deployment <- renderUI({
+    
+    if(input$submission_action == "modify existing deployment" & input$submission_site != ""){
+      
+      div(
+        selectInput("select_deployment", "Select a deployment to modify", choices = c("deployment 1", "deployment 2"))
+      )
+    }
+  })
+  
+  observeEvent(input$to_deployment_metadata, {
+    updateTabsetPanel(session, "submission_box", "deployment_metadata")
+  })
+  
+  ## Provide deployment metadata ####
+  
+  # Add event data to table, clear text input for event
+  observeEvent(input$confirm_event, {
+    significant_events$df <- significant_events$df %>%
+      add_row(event_date = as.character(input$significant_event_date),
+              event_description = input$significant_event_description)
+    
+    updateTextInput(session, inputId = "significant_event_description", value = "")
+  })
+  
+  # Table displaying significant events - if no rows, then a special row indicating the absence of events is added
+  output$display_significant_events <- renderUI({
+    if(nrow(significant_events$df) > 0){
+      div(renderTable(significant_events$df))
+    } else{
+      div(renderTable(
+        significant_events$df %>%
+          add_row(event_description = "No events recorded for this deployment period",
+                  event_date = "")
+      ))
+    }
+  })
+  
+  observeEvent(input$to_calibration_upload, {
+    updateTabsetPanel(session, "submission_box", "calibration_file")
+  })
+  
+  ## Calibration Upload and review ####
+  
+  # Once submit calibration files is clicked, any new files are 
+  observeEvent(input$submit_calibration_files, {
+    
+    if(!is.null(input$fileCalibration$name)){
+      
+      uploaded_files$df <- uploaded_files$df %>%
+        add_row(file_type = "korexo",
+                filename = input$fileCalibration$name,
+                datapath = input$fileCalibration$datapath) %>%
+        mutate(status = case_when(
+          !grepl(".csv", filename) ~ "invalid file",
+          is.na(status) ~ "not processed",
+          T ~ status
+        ))
+    }
+  })
+
+  output$calibration_output <- renderUI({
+    if(nrow(calibration_uploads$log_df) > 0){
+      div(renderTable(calibration_uploads$log_df %>%
+                    select(calibration_id)))
+    }
+  })
+  
+  observe({
+    
+    to_process <- uploaded_files$df %>%
+      filter(status == "not processed")
+    
+    if(nrow(to_process) > 0){
+      for(i in 1:nrow(to_process)){
+        
+        output <- processCalibrationFile(to_process[i,]$datapath)
+        
+        calibration_uploads$log[[to_process[i,]$filename]] <- output[[1]]
+        
+        calibration_uploads$points[[to_process[i,]$filename]] <- output[[2]]
+      }
+      
+      calibration_uploads$log_df <- bind_rows(calibration_uploads$log)
+      calibration_uploads$points_df <- bind_rows(calibration_uploads$points)
+      
+      uploaded_files$df <- uploaded_files$df %>%
+        mutate(status = case_when(
+          filename %in% to_process$filename ~ "processed",
+          T ~ status
+        ))
+    }
+    
+  })
+  
 }

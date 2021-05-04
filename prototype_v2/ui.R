@@ -11,8 +11,8 @@ sidebar <- dashboardSidebar(
   
   sidebarMenu(
     id = "tabs",
-    #menuItem("About", tabName = "about", icon = icon("bullhorn")),
-    #menuItem("Submit data", tabName = "submit_data", icon = icon("file-upload")),
+    menuItem("About", tabName = "about", icon = icon("bullhorn")),
+    menuItem("Submit data", tabName = "submit_data", icon = icon("file-upload")),
     menuItem("Load data", tabName = "load_data", icon = icon("database")),
     menuItem("Annotate data", tabName = "annotate_data", icon = icon("chart-line")),
     #menuItem("View tabular data", tabName = "tabular_data", icon = icon("table")),
@@ -56,56 +56,84 @@ body <- dashboardBody(
     
     ## Submit data ####
     tabItem("submit_data",
-                
-                box(width = 12,
-                    tags$head(
-                      tags$link(rel = "stylesheet", type = "text/css", href = "ordered_list_instructions.css"),
-                      tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
-                    ),
-                    
-                    tags$h3("Submission Instructions"), tags$br(),
-                    tags$ol(
-                      tags$li("Provide deployment information."),
-                      tags$li("Upload the instrument's calibration file and Korexo table."), 
-                      tags$li("Review the submission summary."), 
-                      tags$li("You can begin annotating the data immediately after submission.")
-                    )),
             
-                tabBox(id = "submission_box", width = 12,
-                  tabPanel(title = "Deployment Metadata", value = "deployment_metadata",
-                           div(id = "deployment_metadata_box", 
-                               tags$style(HTML('#deployment_metadata_box{width:700px; margin:auto}')),
-                               
-                               selectInput("submission_site", "Select MarineGEO site", 
-                                           choices = c("", "PAN-BDT", "USA-MDA", "USA-IRL")),
-                               
-                               selectInput("submission_data_type", "Select the data type",
-                                           choices = c("Water Quality", "Water Level", "Meteorological")),
-                               
-                               textInput("deployment_timestamp", "Enter the deployment date and time"),
-                               
-                               textInput("retrieval_timestamp", "Enter the retrieval date and time"),
-                               
-                               selectInput("upload_action", "Select the instrument action", 
-                                           choices = c("Sonde swap", "Troubleshooting", "Cleaning", "Calibration",
-                                                       "other (specify below)"), multiple = TRUE),
-                               
-                               textAreaInput("submission_notes", "Enter any additional notes about this submission")
-
-                           )),
-                  
-                  tabPanel(title = "Upload Files",
-                           fileInput("fileKorexo", "Korexo file",
-                                     multiple = FALSE),
-                           fileInput("fileCalibration", "Calibration file", 
-                                     multiple = FALSE)
-                  ),
-                  
-                  tabPanel(title = "Review and Submit",
-                           actionButton("confirm_submission", "Submit Data"))
-                )
-                
-            ),
+            tabBox(id = "submission_box", width = 12,
+                   tabPanel(title = "Start here", value = "initiate_submission",
+                            div(
+                              selectInput("submission_site", "Select MarineGEO site", 
+                                          choices = c("", "PAN-BDT", "USA-MDA", "USA-IRL")),
+                              
+                              radioButtons("submission_action", "",
+                                           choices = c("submit data for new deployment", "modify existing deployment")),
+                              
+                              uiOutput("select_existing_deployment"),
+                              
+                              actionButton("to_deployment_metadata", "Record deployment metadata")
+                              
+                            )),
+                   tabPanel(title = "Deployment Metadata", value = "deployment_metadata",
+                            div(id = "deployment_metadata_box", 
+                                tags$style(HTML('#deployment_metadata_box{width:700px; margin:auto}')),
+                                
+                                splitLayout(
+                                  dateInput("deployment_date", "Enter the deployment date"),
+                                  textInput("deployment_time", "Enter the deployment time (hh:mm)")),
+                                
+                                splitLayout(
+                                  dateInput("retrieval_date", "Enter the retrieval date"),
+                                  textInput("retrieval_time", "Enter the retrieval time (hh:mm)")),
+                                
+                                selectInput("upload_action", "Select the instrument action", 
+                                            choices = c("Sonde swap", "Troubleshooting", "Cleaning", "Calibration",
+                                                        "other (specify below)"), multiple = TRUE),
+                                
+                                hr(),
+                                
+                                "Record any significant events below by selecting a date and provided a short description of the event. ",
+                                "Once you submit an event, you can provide additional events.", tags$br(), 
+                                
+                                splitLayout(
+                                  dateInput("significant_event_date", "Date of event"),
+                                  textInput("significant_event_description", "Description")
+                                ),
+                                
+                                actionButton("confirm_event", "Confirm event details"), tags$br(), tags$br(),
+                                
+                                uiOutput("display_significant_events"),
+                                
+                                hr(),
+                                
+                                textAreaInput("submission_notes", "Enter any additional notes about this submission"),
+                                
+                                actionButton("to_calibration_upload", "Review calibration file", class = "btn-primary")
+                                
+                            )),
+                   
+                   tabPanel(title = "Calibration Data", value = "calibration_file",
+                            
+                            "Upload one or more calibration files. ",
+                            "Calibration files do not have to be associated with the current deployment to upload.", 
+                            tags$br(), tags$br(),
+                            
+                            fileInput("fileCalibration", "", accept = ".csv",
+                                      multiple = TRUE),
+                            
+                            actionButton("submit_calibration_files", "Submit calibration files"),
+                            
+                            uiOutput("calibration_output")
+                   ),
+                   
+                   tabPanel(title = "Korexo Data", value = "korexo_file"
+                            # fileInput("fileKorexo", "Korexo file",
+                            #           multiple = FALSE),
+                   ),
+                   
+                   
+                   tabPanel(title = "Review and Submit",
+                            actionButton("confirm_submission", "Submit Data"))
+            )
+            
+    ),
     
     ## Load data ####
     tabItem("load_data",
