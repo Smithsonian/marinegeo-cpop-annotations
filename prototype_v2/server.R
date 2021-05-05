@@ -857,7 +857,7 @@ function(input, output, session) {
   
   ## Calibration Upload and review ####
   
-  # Once submit calibration files is clicked, any new files are 
+  # Once submit calibration files is clicked, any associated files are added to an inventory
   observeEvent(input$submit_calibration_files, {
     
     if(!is.null(input$fileCalibration$name)){
@@ -873,11 +873,14 @@ function(input, output, session) {
         ))
     }
   })
-
+  
+  # Show dates associated with uploaded calibration files
   output$calibration_output <- renderUI({
     if(nrow(calibration_uploads$log_df) > 0){
-      div(renderTable(calibration_uploads$log_df %>%
-                    select(calibration_id)))
+      div(renderTable(
+        calibration_uploads$log_df %>%
+          mutate(calibration_start_date = as.character(calibration_start_date)) %>%
+          count(calibration_start_date)))
     }
   })
   
@@ -904,8 +907,139 @@ function(input, output, session) {
           filename %in% to_process$filename ~ "processed",
           T ~ status
         ))
+        
+      calibration_uploads$log_df <- calibration_uploads$log_df %>%
+        separate(calibration_start_time, into = c("calibration_start_date", "time"), sep = " ", remove = FALSE, extra = "drop") %>%
+        select(-time) %>%
+        mutate(calibration_start_date = mdy(calibration_start_date))
+      
+      write_csv(calibration_uploads$log_df, "./data/output_cal_log.csv")
+      write_csv(calibration_uploads$points_df, "./data/output_cal_points.csv")
+      
     }
     
   })
   
+  processCalibrationFile <- function(datapath){
+    
+    # There are two types of calibration files (so far):
+    # 1. SMS and STRI: The first line is "KorEXO Calibration File Export", followed by a blank row
+    # 2. SERC: The first line is the beginning of the calibration data
+    # For the first case, skip the first two rows.
+    
+    calibration_first_row <- read.table(datapath, nrows = 1, sep=",", colClasses = "character")
+    
+    if(calibration_first_row[1,1] == "KorEXO Calibration File Export"){
+      num_rows_to_skip = 2
+    } else if(calibration_first_row[1,1] == "Last Calibration Time="){
+      num_rows_to_skip = 0
+    }
+    
+    cal_raw <- read_csv(datapath, skip = num_rows_to_skip, col_names = F) %>% 
+                        #locale = locale(encoding = "Windows-1252")) %>% 
+      rowid_to_column()
+    
+    subtable_rows <- cal_raw %>% 
+      filter(X1 == "----------") %>%
+      select(rowid)
+    
+    subtable_sensors <- cal_raw %>%
+      filter(X1 == "Sensor Type=") %>%
+      select(X2)
+    
+    # SERC calibration files do not end in ---------- 
+    # Therefore a final max rowid value needs to be added to the subtable row table
+    if(nrow(subtable_rows) == nrow(subtable_sensors) - 1){
+      subtable_rows <- add_row(subtable_rows, rowid = nrow(cal_raw) + 1)
+    }
+    
+    subtable_index <- cbind(subtable_rows, subtable_sensors) %>%
+      rename(max_rowid = rowid, sensor = X2)
+    
+    cal <- cal_raw %>%
+      filter(X1 != "----------")
+    
+    calibration_log <- data.frame()
+    calibration_points <- data.frame()
+    
+    index <- 0
+    
+    # For each category, extract it's attributes
+    for(i in 1:nrow(subtable_index)){ 
+      print("NEXT")
+      print(i)
+      print(index)
+      
+      next_index <- subtable_index$max_rowid[i]
+      
+      print(next_index)
+      
+      calibration_subset <- cal %>%
+        filter(rowid > index & rowid < next_index)
+      
+      calibration_point_index <- calibration_subset %>% 
+        filter(grepl("\\[Cal Point", X1)) %>%
+        select(X1, rowid)
+      
+      if(nrow(calibration_point_index) != 0){
+        for(j in 1:nrow(calibration_point_index)){
+          
+          if(j == nrow(calibration_point_index)){
+            next_point_index <- max(calibration_subset$rowid) + 1
+          } else {
+            next_point_index <- calibration_point_index$rowid[j + 1]
+          }
+          
+          print("cal points")
+          current_point_index <- calibration_point_index$rowid[j]
+          print(current_point_index)
+          print(next_point_index)
+          
+          calibration_points <- calibration_subset %>%
+            filter(rowid > current_point_index & rowid < next_point_index) %>%
+            select(-rowid) %>%
+            pivot_wider(names_from = X1, values_from = X2) %>%
+            mutate(calibration_point = j,
+                   calibration_id = index + 1) %>%
+            bind_rows(calibration_points)
+        }
+        
+        calibration_points <- calibration_points %>%
+          mutate(submission_id = getSubmissionID())
+        
+        max_calibration_point_rowid <- min(calibration_point_index$rowid)
+      } else {
+        max_calibration_point_rowid <- next_index
+      }
+      
+      calibration_log <- calibration_subset %>%
+        filter(rowid < max_calibration_point_rowid) %>%
+        select(-rowid) %>%
+        pivot_wider(names_from = X1, values_from = X2) %>%
+        mutate(calibration_id = index + 1) %>%
+        bind_rows(calibration_log)
+      
+      index <- next_index
+      
+    }
+    
+    calibration_log <- calibration_log %>%
+      mutate(submission_id = getSubmissionID())
+    
+    colnames(calibration_log) <- processCalibrationHeaders(colnames(calibration_log))
+    colnames(calibration_points) <- processCalibrationHeaders(colnames(calibration_points))
+    
+    # write_csv(calibration_log, "./data/output_cal_log.csv")
+    # write_csv(calibration_points, "./data/output_cal_points.csv")
+    
+    return(list(calibration_log, calibration_points))
+  }
+  
+  processCalibrationHeaders <- function(cols){
+    
+    new_cols <- gsub(" ", "_",
+                     gsub("=", "", tolower(cols)))
+    
+    return(new_cols)
+  }
 }

@@ -1,0 +1,13 @@
+standard,pre_calibration_value,post_calibration_value,raw_value,temperature,stability_achieved,calibration_point,calibration_id,barometer,submission_id
+50000.0 µS/cm,49696.0 µS/cm,50000.2 µS/cm,0.0 µS/cm,22.565 °C,Yes,1,191,NA,NA
+10.00 pH,10.17 pH,10.00 pH,-185.7 mV,22.597 °C,Yes,2,159,NA,NA
+7.00 pH,7.15 pH,7.00 pH,-8.7 mV,22.614 °C,Yes,1,159,NA,NA
+124.00 FNU,125.08 FNU,124.00 FNU,0.00 FNU,22.556 °C,Yes,2,130,NA,NA
+0.00 FNU,-0.02 FNU,0.00 FNU,0.00 FNU,22.600 °C,Yes,1,130,NA,NA
+65.43 µg/L,68.58 µg/L,65.43 µg/L,0.00 µg/L,22.565 °C,Yes,2,101,NA,NA
+0.00 µg/L,0.02 µg/L,0.00 µg/L,0.00 µg/L,22.574 °C,Yes,1,101,NA,NA
+124.50 µg/L,123.85 µg/L,124.50 µg/L,0.00 µg/L,22.574 °C,Yes,2,72,NA,NA
+0.00 µg/L,0.57 µg/L,0.00 µg/L,0.00 µg/L,22.524 °C,Yes,1,72,NA,NA
+0.00 RFU,-0.10 RFU,0.00 RFU,0.00 RFU,22.491 °C,Yes,1,50,NA,NA
+0.000 m,0.069 m,0.000 m,0.000 m,22.095 °C,Yes,1,28,NA,NA
+100.0 % Sat,100.9 % Sat,100.1 % Sat,0.0 % Sat,22.075 °C,Yes,1,1,760.0 mmHg,NA

@@ -1,0 +1,213 @@
+Last Calibration Time=,12/1/2020 8:51:23 AM
+Calibration Start Time=,1/27/2021 9:43:55 AM
+Calibration End Time=,1/27/2021 9:44:07 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14H100676
+Instrument Serial Number=,14H100676
+Instrument Firmware Version=,1.0.83
+Parameter Type=,DO (% Sat)
+Sensor Type=,DO
+Sensor Serial Number=,14H100537
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+DO Cap Serial Number=,20B121196
+DO Cap Replacement Date=,3/18/2020 8:30:21 AM
+DO Gain=,0.98
+DO mg/L=,8.73 mg/L
+[Cal Point 1],NA
+Standard=,100.0 % Sat
+Pre Calibration Value=,100.9 % Sat
+Post Calibration Value=,100.1 % Sat
+Raw Value=,0.0 % Sat
+Temperature=,22.075 °C
+Stability Achieved=,Yes
+Barometer=,760.0 mmHg
+----------,NA
+Last Calibration Time=,9/29/2020 11:41:47 AM
+Calibration Start Time=,1/27/2021 9:44:30 AM
+Calibration End Time=,1/27/2021 9:44:36 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14H100676
+Instrument Serial Number=,14H100676
+Instrument Firmware Version=,1.0.83
+Parameter Type=,Depth (m)
+Sensor Type=,Depth
+Sensor Serial Number=,19D101579
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+[Cal Point 1],NA
+Standard=,0.000 m
+Pre Calibration Value=,0.069 m
+Post Calibration Value=,0.000 m
+Raw Value=,0.000 m
+Temperature=,22.095 °C
+Stability Achieved=,Yes
+----------,NA
+Last Calibration Time=,12/1/2020 9:04:32 AM
+Calibration Start Time=,1/27/2021 9:47:09 AM
+Calibration End Time=,1/27/2021 9:47:21 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14H100676
+Instrument Serial Number=,14H100676
+Instrument Firmware Version=,1.0.83
+Parameter Type=,fDOM (RFU)
+Sensor Type=,fDOM
+Sensor Serial Number=,18G101036
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+[Cal Point 1],NA
+Standard=,0.00 RFU
+Pre Calibration Value=,-0.10 RFU
+Post Calibration Value=,0.00 RFU
+Raw Value=,0.00 RFU
+Temperature=,22.491 °C
+Stability Achieved=,Yes
+----------,NA
+Last Calibration Time=,12/1/2020 9:13:35 AM
+Calibration Start Time=,1/27/2021 9:49:01 AM
+Calibration End Time=,1/27/2021 9:52:07 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14H100676
+Instrument Serial Number=,14H100676
+Instrument Firmware Version=,1.0.83
+Parameter Type=,Phycoerythrin (µg/L)
+Sensor Type=,TAL-PE
+Sensor Serial Number=,14H100361
+Sensor Firmware Version=,3.0.5
+User ID=,<Unknown>
+[Cal Point 1],NA
+Standard=,0.00 µg/L
+Pre Calibration Value=,0.57 µg/L
+Post Calibration Value=,0.00 µg/L
+Raw Value=,0.00 µg/L
+Temperature=,22.524 °C
+Stability Achieved=,Yes
+[Cal Point 2],NA
+Standard=,124.50 µg/L
+Pre Calibration Value=,123.85 µg/L
+Post Calibration Value=,124.50 µg/L
+Raw Value=,0.00 µg/L
+Temperature=,22.574 °C
+Stability Achieved=,Yes
+----------,NA
+Last Calibration Time=,12/1/2020 9:18:48 AM
+Calibration Start Time=,1/27/2021 9:53:15 AM
+Calibration End Time=,1/27/2021 9:55:43 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14H100676
+Instrument Serial Number=,14H100676
+Instrument Firmware Version=,1.0.83
+Parameter Type=,Chlorophyll (µg/L)
+Sensor Type=,TAL-PE
+Sensor Serial Number=,14H100361
+Sensor Firmware Version=,3.0.5
+User ID=,<Unknown>
+[Cal Point 1],NA
+Standard=,0.00 µg/L
+Pre Calibration Value=,0.02 µg/L
+Post Calibration Value=,0.00 µg/L
+Raw Value=,0.00 µg/L
+Temperature=,22.574 °C
+Stability Achieved=,Yes
+[Cal Point 2],NA
+Standard=,65.43 µg/L
+Pre Calibration Value=,68.58 µg/L
+Post Calibration Value=,65.43 µg/L
+Raw Value=,0.00 µg/L
+Temperature=,22.565 °C
+Stability Achieved=,Yes
+----------,NA
+Last Calibration Time=,12/1/2020 9:23:17 AM
+Calibration Start Time=,1/27/2021 9:58:03 AM
+Calibration End Time=,1/27/2021 10:01:07 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14H100676
+Instrument Serial Number=,14H100676
+Instrument Firmware Version=,1.0.83
+Parameter Type=,Turbidity (FNU)
+Sensor Type=,Turbidity
+Sensor Serial Number=,14H100389
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+[Cal Point 1],NA
+Standard=,0.00 FNU
+Pre Calibration Value=,-0.02 FNU
+Post Calibration Value=,0.00 FNU
+Raw Value=,0.00 FNU
+Temperature=,22.600 °C
+Stability Achieved=,Yes
+[Cal Point 2],NA
+Standard=,124.00 FNU
+Pre Calibration Value=,125.08 FNU
+Post Calibration Value=,124.00 FNU
+Raw Value=,0.00 FNU
+Temperature=,22.556 °C
+Stability Achieved=,Yes
+----------,NA
+Last Calibration Time=,<Unknown>
+Calibration Start Time=,1/27/2021 10:03:57 AM
+Calibration End Time=,1/27/2021 10:06:06 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14H100676
+Instrument Serial Number=,14H100676
+Instrument Firmware Version=,1.0.83
+Parameter Type=,pH
+Sensor Type=,pH
+Sensor Serial Number=,21A100167
+Sensor Firmware Version=,3.0.0
+User ID=,<Unknown>
+Sensor Module Replacement Date=,1/27/2022 12:00:00 AM
+pH Range 7.00-10.00 Delta Slope=,177.0 mV
+pH Range 7.00-10.00 mV per Decade=,59.00
+[Cal Point 1],NA
+Standard=,7.00 pH
+Pre Calibration Value=,7.15 pH
+Post Calibration Value=,7.00 pH
+Raw Value=,-8.7 mV
+Temperature=,22.614 °C
+Stability Achieved=,Yes
+[Cal Point 2],NA
+Standard=,10.00 pH
+Pre Calibration Value=,10.17 pH
+Post Calibration Value=,10.00 pH
+Raw Value=,-185.7 mV
+Temperature=,22.597 °C
+Stability Achieved=,Yes
+----------,NA
+Last Calibration Time=,12/1/2020 9:41:35 AM
+Calibration Start Time=,1/27/2021 10:07:59 AM
+Calibration End Time=,1/27/2021 10:09:30 AM
+Calibration Status=,Completed
+QC Score=,Good
+Instrument Type=,EXO2
+Instrument Name=,Sonde 14H100676
+Instrument Serial Number=,14H100676
+Instrument Firmware Version=,1.0.83
+Parameter Type=,Sp Cond (µS/cm)
+Sensor Type=,Conductivity
+Sensor Serial Number=,19F000764
+Sensor Firmware Version=,3.0.5
+User ID=,<Unknown>
+Cell Constant=,5.44
+[Cal Point 1],NA
+Standard=,50000.0 µS/cm
+Pre Calibration Value=,49696.0 µS/cm
+Post Calibration Value=,50000.2 µS/cm
+Raw Value=,0.0 µS/cm
+Temperature=,22.565 °C
+Stability Achieved=,Yes
+----------,NA
