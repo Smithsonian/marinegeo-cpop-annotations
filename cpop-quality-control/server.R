@@ -176,6 +176,20 @@ function(input, output, session) {
     
   })
   
+  output$additional_months_selection <- renderUI({
+    
+    req(input$month_selection)
+    
+    available_additional_months <- key %>%
+      filter(site_code == input$site_selection,
+             year == input$year_selection,
+             month == unname(formatted_months[input$month_selection])) %>%
+      pull(leading_months)
+    
+    selectInput("additional_months_selection", "Select the number of additional months to load for QC", 
+                choices = c(0, leading_months), multiple = FALSE)
+  })
+  
   # ## Datatable output for import ####
   # output$key <- renderDataTable({
   #   datatable(data_inventory(),
@@ -242,7 +256,7 @@ function(input, output, session) {
         # reference_data$df <- data.frame()
         
         qc_output$flags <- raw_flags %>%
-          pivot_longer(Turbidity_FNU_f:fDOM_RFU_f, names_to = "parameter", values_to = "flag") %>%
+          pivot_longer(Turbidity_FNU_f:Battery_V_f, names_to = "parameter", values_to = "flag") %>%
           mutate(modified = F)
     
         if(nrow(raw_codes) > 0){

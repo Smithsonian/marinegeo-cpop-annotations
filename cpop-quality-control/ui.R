@@ -130,6 +130,8 @@ body <- dashboardBody(
                          
                          uiOutput("month_selection"),
                          
+                         #uiOutput("additional_months_selection"),
+                         
                          # Read in data selected in table
                          actionButton("loadData", "Load data", class = "btn-primary"), tags$br(), tags$br(),
                          
@@ -257,9 +259,9 @@ body <- dashboardBody(
                          status = "primary",
                          title = "Review Quality Control",
                          # Plot summarizes qc flags by parameter - qc flag
-                         dataTableOutput("table_summary_qc"),
-                         uiOutput("remove_codes"),
-                         actionButton("confirm_removal", "Confirm QC code removal", class = "btn-warning"),
+                         #dataTableOutput("table_summary_qc"),
+                         #uiOutput("remove_codes"),
+                         #actionButton("confirm_removal", "Confirm QC code removal", class = "btn-warning"),
                          
                          div(tags$br()),
                          

@@ -17,8 +17,8 @@ library(plotly)
 library(shinyjs)
 library(DBI)
 
-#app_location <- "local"
-app_location <- "shiny_server"
+app_location <- "local"
+#app_location <- "shiny_server"
 
 if(app_location == "shiny_server"){
   library(dbplyr, lib.loc = "/home/lonnemanm/library")
@@ -39,15 +39,34 @@ getDatabaseConnection <- function(){
 
 con <- getDatabaseConnection()
 
-wq_dat <- tbl(con, "water_quality_l1")
+table_names <- c("water_quality_l1", "korexo_panbdt_instrument1_l1", "korexo_usairl_instrument1_l1")
 
-key <- wq_dat %>%
-  group_by(year(timestamp), month(timestamp), site_code) %>%
-  summarize(n = n()) %>%
-  collect() %>%
-  rename(year = `year(timestamp)`,
-         month = `month(timestamp)`) %>%
-  select(-n)
+key <- data.frame()
+
+for(table in table_names){
+  wq_dat <- tbl(con, table)
+  
+  df <- wq_dat %>%
+    group_by(year(timestamp), month(timestamp), site_code) %>%
+    summarize(n = n(), table_name = table) %>%
+    collect() %>%
+    rename(year = `year(timestamp)`,
+           month = `month(timestamp)`) %>%
+    select(-n) %>%
+    arrange(table_name, site_code, year, month)
+  
+  key <- df %>%
+    group_by(table_name, site_code) %>%
+    mutate(one_month = dplyr::lead(month, n = 1),
+           two_month = dplyr::lead(month, n = 2)) %>%
+    mutate(leading_months = case_when(
+      is.na(one_month) ~ 0,
+      is.na(two_month) ~ 1,
+      T ~ 2
+    )) %>%
+    select(-one_month, -two_month) %>%
+    bind_rows(key)
+}
 
 dbDisconnect(con)
 
