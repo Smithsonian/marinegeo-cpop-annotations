@@ -41,7 +41,9 @@ body <- dashboardBody(
                          
                          uiOutput("month_selection"),
                          
-                         #uiOutput("additional_months_selection"),
+                         uiOutput("database_table_selection"),
+                         
+                         uiOutput("additional_months_selection"),
                          
                          # Read in data selected in table
                          actionButton("loadData", "Load data", class = "btn-primary"), tags$br(), tags$br(),

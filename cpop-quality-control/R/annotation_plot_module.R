@@ -66,7 +66,7 @@ annotation_controls_server <- function(id, current_data, qc_output){
           is.na(main_code) ~ comment_code,
           T ~ paste(main_code, comment_code, sep = ", ")
         )) %>%
-        select(-c(main_code_modified, comment_code_modified, parameter, code_id))
+        select(-c(main_code_modified, comment_code_modified, parameter, code_id, site_code, deployment_id))
         #group_by(id) %>%
         #summarize(code = paste(code, collapse = ", "))
     })
@@ -76,7 +76,7 @@ annotation_controls_server <- function(id, current_data, qc_output){
     flag_timestamps <- reactive({
       qc_output$flags %>%
         filter(parameter == paste0(input$parameter_qc, "_f")) %>%
-        select(-parameter, -modified)
+        select(-parameter, -modified, -site_code, -deployment_id, -observation_id)
     })
     
     reactive({
@@ -89,8 +89,8 @@ annotation_controls_server <- function(id, current_data, qc_output){
       
       df <- current_data$df %>%
         select(timestamp, observation_id, all_of(input$parameter_qc)) %>%
-        merge(flag_timestamps(), by="observation_id", all.x=TRUE) %>%
-        merge(code_timestamps(), by="observation_id", all.x=TRUE) %>%
+        merge(flag_timestamps(), by="timestamp", all.x=TRUE) %>%
+        merge(code_timestamps(), by="timestamp", all.x=TRUE) %>%
         # Provide values to missing data
         mutate(!!input$parameter_qc := case_when(
           flag == -2 ~ parameter_mean(),

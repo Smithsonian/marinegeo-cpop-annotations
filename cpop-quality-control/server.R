@@ -156,18 +156,49 @@ function(input, output, session) {
     
   })
   
+  output$database_table_selection <- renderUI({
+    
+    req(input$month_selection)
+    
+    table_names <- key %>%
+      filter(site_code == input$site_selection,
+             year == input$year_selection,
+             month == unname(formatted_months[input$month_selection])) %>%
+      pull(table_name)
+    
+    if(length(table_names) > 1){
+      selectInput("database_table_selection", "Select the database to load data from", 
+                  choices = table_names, multiple = FALSE)
+      
+    } else {
+      div()
+    }
+    
+  })
+  
   output$additional_months_selection <- renderUI({
     
     req(input$month_selection)
     
-    available_additional_months <- key %>%
+    df <- key %>%
       filter(site_code == input$site_selection,
              year == input$year_selection,
-             month == unname(formatted_months[input$month_selection])) %>%
-      pull(leading_months)
+             month == unname(formatted_months[input$month_selection])) 
+    
+    if(nrow(df) > 1){
+      
+      req(input$database_table_selection)
+      
+      leading_month_options <- df %>%
+        filter(table_name == input$database_table_selection) %>%
+        pull(leading_months)
+      
+    } else {
+      leading_month_options <- pull(df, leading_months)
+    }
     
     selectInput("additional_months_selection", "Select the number of additional months to load for QC", 
-                choices = c(0, leading_months), multiple = FALSE)
+                choices = c(0:leading_month_options), multiple = FALSE)
   })
   
    
@@ -181,13 +212,24 @@ function(input, output, session) {
   observeEvent(input$loadData, {
     
     selected_site <- input$site_selection
-    selected_year <- input$year_selection
+    selected_year <- as.numeric(input$year_selection)
     selected_month <- unname(formatted_months[input$month_selection])
-    
+    selected_month_range <- as.numeric(input$additional_months_selection) + 1
+
+    if(!is.null(input$database_table_selection)){
+      selected_table <- input$database_table_selection
+    } else {
+      selected_table <- unique(
+        filter(key, year == selected_year,
+               month == selected_month,
+               site_code == selected_site)
+      ) %>% pull(table_name)
+    }
     
     if(nrow(filter(key, year == selected_year,
                    month == selected_month,
-                   site_code == selected_site)) > 0){
+                   site_code == selected_site,
+                   table_name == selected_table)) == 1){
       
         con <- DBI::dbConnect(odbc::odbc(),
                               Driver = "MySQL ODBC 8.0 ANSI Driver",
@@ -197,26 +239,43 @@ function(input, output, session) {
                               UID = "datLakeDev",
                               PWD = Sys.getenv('password'))
         
-        wq_dat <- tbl(con, "water_quality_l1")
-        wq_qc_dat <- tbl(con, "water_quality_expert_flags")
-        wq_codes_dat <- tbl(con, "water_quality_codes")
+        # wq_dat <- tbl(con, "water_quality_l1")
+        # wq_qc_dat <- tbl(con, "water_quality_expert_flags")
+        # wq_codes_dat <- tbl(con, "water_quality_codes")
+        wq_dat <- tbl(con, selected_table)
+        wq_qc_dat <- tbl(con, "water_quality_expert_flags_updated")
+        wq_codes_dat <- tbl(con, "water_quality_codes_updated")
+        
+        min_date <- ymd(paste(selected_year, selected_month, "01", sep = "-"))
+        max_date <- min_date %m+% months(selected_month_range)
+        
+        # current_data$df <- wq_dat %>%
+        #   filter(year(timestamp_1min) == selected_year,
+        #          month(timestamp_1min) == selected_month,
+        #          site_code == selected_site) %>%
+        #   collect() %>%
+        #   select(-timestamp) %>%
+        #   rename(timestamp = timestamp_1min)
         
         current_data$df <- wq_dat %>%
-          filter(year(timestamp_1min) == selected_year,
-                 month(timestamp_1min) == selected_month,
+          filter(timestamp >= min_date & timestamp <= max_date,
                  site_code == selected_site) %>%
-          collect() %>%
-          select(-timestamp) %>%
-          rename(timestamp = timestamp_1min)
+          collect()
         
-        current_ids <- current_data$df$observation_id
+        #current_ids <- current_data$df$observation_id
+        
+        # raw_flags <- wq_qc_dat %>%
+        #   filter(observation_id %in% current_ids) %>%
+        #   collect()
         
         raw_flags <- wq_qc_dat %>%
-          filter(observation_id %in% current_ids) %>%
+          filter(timestamp >= min_date & timestamp <= max_date,
+                 site_code == selected_site) %>%
           collect()
         
         raw_codes <- wq_codes_dat %>%
-          filter(observation_id %in% current_ids) %>%
+          filter(timestamp >= min_date & timestamp <= max_date,
+                 site_code == selected_site) %>%
           collect()
         
         dbDisconnect(con)
@@ -226,10 +285,14 @@ function(input, output, session) {
         # Remove any reference data if it exists
         # reference_data$df <- data.frame()
         
-        qc_output$flags <- raw_flags %>%
-          pivot_longer(Turbidity_FNU_f:Battery_V_f, names_to = "parameter", values_to = "flag") %>%
-          mutate(modified = F)
+        # qc_output$flags <- raw_flags %>%
+        #   pivot_longer(Turbidity_FNU_f:Battery_V_f, names_to = "parameter", values_to = "flag") %>%
+        #   mutate(modified = F)
     
+        qc_output$flags <- raw_flags %>%
+          pivot_longer(5:length(colnames(raw_flags)), names_to = "parameter", values_to = "flag") %>%
+          mutate(modified = F)
+        
         if(nrow(raw_codes) > 0){
           qc_output$codes <- raw_codes %>%
             mutate(comment_code_modified = F,
@@ -249,9 +312,8 @@ function(input, output, session) {
         
       } else {
         showModal(modalDialog(
-          title = "No Data Selected",
-          div("Load data by selecting the row in the table that represents the data of interest.
-                You can subset the table using the subset options to the left of the table."),
+          title = "Missing Data Selection",
+          div("Make sure you have selected a site, year, and month of data before loading data."),
           
           easyClose = TRUE
         ))
