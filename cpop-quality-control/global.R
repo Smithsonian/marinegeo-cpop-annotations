@@ -24,9 +24,6 @@ if(app_location == "shiny_server"){
   library(dbplyr, lib.loc = "/home/lonnemanm/library")
 }
 
-#introduction_text <- read_file("./prototype_v2/data/intro.txt")
-introduction_text <- read_file("./data/intro.txt")
-
 getDatabaseConnection <- function(){
   DBI::dbConnect(odbc::odbc(),
                  Driver = "MySQL ODBC 8.0 ANSI Driver",
@@ -154,14 +151,6 @@ submissionDate <- function() format(Sys.time(), "%Y%m%d")
 
 rosetta <- read_csv("./data/MarineGEO_rosetta.csv",
                     locale = locale(encoding = "Windows-1252"))
-
-
-# jscode <-
-#   '$(document).on("shiny:connected", function(e) {
-#   var jsHeight = screen.height;
-#   Shiny.onInputChange("GetScreenHeight",jsHeight);
-# });
-# '
 
 jscode_box_collapse <- "
 shinyjs.expandBox = function(boxid) {

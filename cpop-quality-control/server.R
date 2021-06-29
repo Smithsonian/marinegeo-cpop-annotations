@@ -126,26 +126,6 @@ function(input, output, session) {
     ))
     
   })
-  # output$site_info_box <- renderValueBox({
-  #   valueBox(
-  #     current_site(), "Site", icon = icon("broadcast-tower"),
-  #     color = "purple"
-  #   )
-  # })
-  # 
-  # output$date_range_box <- renderValueBox({
-  #   valueBox(
-  #     current_date_range(), "Date Range", icon = icon("calendar-alt"),
-  #     color = "teal"
-  #   )
-  # })
-  # 
-  # output$annotation_progress_box <- renderValueBox({
-  #   valueBox(
-  #     current_qc_progress(), "Quality Control Progress", icon = icon("percent"),
-  #     color = "light-blue"
-  #   )
-  # })
 
   output$year_selection <- renderUI({
     
@@ -189,15 +169,6 @@ function(input, output, session) {
     selectInput("additional_months_selection", "Select the number of additional months to load for QC", 
                 choices = c(0, leading_months), multiple = FALSE)
   })
-  
-  # ## Datatable output for import ####
-  # output$key <- renderDataTable({
-  #   datatable(data_inventory(),
-  #             options = list(
-  #               pageLength = 5
-  #             ),
-  #             selection = "single")
-  # })
   
    
   output$start_date <- renderUI({
@@ -713,32 +684,6 @@ function(input, output, session) {
   })
 
 
-
-
-  # output$table_selected_points <- renderDataTable({
-  #
-  #   req(input$parameter_qc)
-  #
-  #   # By default, the table will show the timestamp, the selected QAQC parameter, and the QC numeric flag
-  #   data_subset <- current_data$df %>%
-  #     select(timestamp, input$parameter_qc, unname(sensor_vector_l1[input$sensor_qc]))
-  #
-  #   brush_subset <- event_data("plotly_selected")
-  #
-  #   if (!is.null(brush_subset)){
-  #     # brush_subset <- brush_subset %>%
-  #     #   mutate(key = ymd_hms(key))
-  #
-  #     datatable(
-  #       data_subset %>%
-  #         filter(id %in% brush_subset$key)
-  #     )
-  #   } else {
-  #     datatable(data_subset)
-  #   }
-  #
-  # })
-
   output$table_summary_qc <- renderDataTable({
 
     if(nrow(qc_output$codes) > 0){
@@ -752,25 +697,6 @@ function(input, output, session) {
       # datatable(summary)
     }
   })
-
-  ## Remove QC flags ####
-  # output$remove_codes <- renderUI({
-  #   selectInput("select_remove_codes", "Select QC codes to remove",
-  #               choices = unique(qc_output$codes$code), multiple = TRUE)
-  # 
-  # })
-
-  # observeEvent(input$confirm_removal,{
-  # 
-  #   if(!is.null(input$select_remove_codes)){
-  #     points_to_remove <- qc_output$codes %>%
-  #       filter(code %in% input$select_remove_codes)
-  # 
-  #     qc_output$codes <- qc_output$codes %>%
-  #       filter(!(code %in% input$select_remove_codes))
-  # 
-  #   }
-  # })
 
   ## Submit annotations ####
   observeEvent(input$submit_codes, {
