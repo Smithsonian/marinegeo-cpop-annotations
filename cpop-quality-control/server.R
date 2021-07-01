@@ -8,13 +8,18 @@ function(input, output, session) {
   current_data <- reactiveValues(df=data.frame())
 
   # Empty dataframes will hold points selected for level 1 QC flags and level 2 QC flags and codes
-  qc_output <- reactiveValues(flags = tibble(observation_id = as.numeric(NA),
+  qc_output <- reactiveValues(flags = tibble(observation_id = NA_integer_,
+                                             site_code = NA_character_,
+                                             deployment_id = NA_character_,
+                                             timestamp = as.numeric(NA),
                                              parameter = as.character(NA),
                                              flag = as.character(NA),
                                              modified = as.logical(NA),
                                              .rows = 0),
                               codes = tibble(code_id = as.numeric(NA),
-                                             observation_id = as.numeric(NA),
+                                             site_code = NA_character_,
+                                             deployment_id = NA_character_,
+                                             timestamp = as.numeric(NA),
                                              parameter = as.character(NA),
                                              main_code = as.character(NA),
                                              comment_code = as.character(NA),
@@ -271,12 +276,14 @@ function(input, output, session) {
         raw_flags <- wq_qc_dat %>%
           filter(timestamp >= min_date & timestamp <= max_date,
                  site_code == selected_site) %>%
-          collect()
+          collect() %>%
+          filter(timestamp %in% current_data$df$timestamp)
         
         raw_codes <- wq_codes_dat %>%
           filter(timestamp >= min_date & timestamp <= max_date,
                  site_code == selected_site) %>%
-          collect()
+          collect() %>%
+          filter(timestamp %in% current_data$df$timestamp)
         
         dbDisconnect(con)
         
@@ -613,13 +620,13 @@ function(input, output, session) {
     in_progress_qc$flags <- qc_output$flags %>%
       # If a flag is updated, change modified to T
       mutate(modified = case_when(
-        observation_id %in% selection$df$observation_id &
+        timestamp %in% selection$df$timestamp &
           parameter == paste0(parameter_flag(), "_f") &
           flag != -2 & flag != as.integer(input$revise_flags) ~ T,
         T ~ modified
       )) %>%
       mutate(flag = case_when(
-        observation_id %in% selection$df$observation_id &
+        timestamp %in% selection$df$timestamp &
           parameter == paste0(parameter_flag(), "_f") &
           flag != -2 ~ as.integer(input$revise_flags),
         T ~ flag
@@ -659,31 +666,39 @@ function(input, output, session) {
       updated_codes <- qc_output$codes %>%
         mutate(
           main_code_modified = case_when(
-            observation_id %in% selection$df$observation_id &
+            timestamp %in% selection$df$timestamp &
               parameter == parameter_flag() & 
               sensor_code_selection != main_code ~ T,
             T ~ main_code_modified),
           comment_code_modified = case_when(
-            observation_id %in% selection$df$observation_id &
+            timestamp %in% selection$df$timestamp &
               parameter == parameter_flag() & 
               comment_code_selection != comment_code ~ T,
             T ~ comment_code_modified)
         ) %>%
         mutate(main_code = case_when(
-          observation_id %in% selection$df$observation_id &
+          timestamp %in% selection$df$timestamp &
             parameter == parameter_flag() ~ input$sensor_code_selection,
           T ~ main_code
         )) %>%
         mutate(comment_code = case_when(
-          observation_id %in% selection$df$observation_id &
+          timestamp %in% selection$df$timestamp &
             parameter == parameter_flag() ~ comment_code_selection,
           T ~ comment_code
         )) 
       
-      if(length(selection$df$observation_id[!selection$df$observation_id %in% updated_codes$observation_id]) > 0){
-        # Create new rows if observation dobservation_id not have any pre-existing codes
+      # Filter to codes that exist for selected timestamp - parameter combintation
+      codes_in_selection <- qc_output$codes %>%
+        filter(timestamp %in% selection$df$timestamp,
+               parameter == parameter_flag())
+      
+      # Determine which points do not yet have a code observation for a given parameter - timestamp combination
+      new_timestamps <- selection$df$timestamp[!selection$df$timestamp %in% codes_in_selection$timestamp]
+        
+      if(length(new_timestamps) > 0){
+        # Create new rows if observation timestamp does not have any pre-existing codes
         new_codes <- tibble(
-          observation_id = selection$df$observation_id[!selection$df$observation_id %in% updated_codes$observation_id],
+          timestamp = new_timestamps,
           parameter = parameter_flag(),
           main_code = sensor_code_selection,
           comment_code = comment_code_selection
@@ -696,7 +711,12 @@ function(input, output, session) {
               !is.na(comment_code) ~ T,
               T ~ F))
         
-        qc_output$codes <- bind_rows(updated_codes, new_codes)
+        new_codes_complete <- current_data$df %>%
+          filter(timestamp %in% new_codes$timestamp) %>%
+          select(timestamp, site_code, deployment_id) %>%
+          merge(new_codes, by = "timestamp")
+        
+        qc_output$codes <- bind_rows(updated_codes, new_codes_complete)
         
       } else {
         qc_output$codes <- updated_codes
@@ -766,6 +786,8 @@ function(input, output, session) {
     output_flags <- qc_output$flags %>%
       filter(modified) 
 
+    current_site_code <- input$site_selection
+    
     con <- getDatabaseConnection()
 
     if(nrow(output_flags) > 0){
@@ -779,9 +801,9 @@ function(input, output, session) {
           
           vals <- param_flags %>%
             filter(flag == current_flag) %>%
-            pull(observation_id)
+            pull(timestamp)
           
-          sql <- paste0("UPDATE water_quality_expert_flags SET `", current_parameter, "` = \"", current_flag, "\" WHERE `observation_id` IN (?)")
+          sql <- paste0("UPDATE water_quality_expert_flags_updated SET `", current_parameter, "` = \"", current_flag, "\" WHERE `timestamp` IN (?) AND site_code = \"", current_site_code, "\" AND observation_id > 0")
           
           dbSendQuery(con, sql, list(vals))
         }
@@ -797,7 +819,7 @@ function(input, output, session) {
     if(nrow(new_codes) > 0){
       DBI::dbWriteTable(con,
                         value = new_codes,
-                        name = "water_quality_codes", append = TRUE)
+                        name = "water_quality_codes_updated", append = TRUE)
     }
     
     # Step 2 - Update other modified codes
@@ -813,11 +835,10 @@ function(input, output, session) {
           filter(main_code == current_code) %>%
           pull(code_id)
         
-        sql <- paste0("UPDATE water_quality_codes SET `main_code` = \"", current_code, "\" WHERE `code_id` IN (?)")
+        sql <- paste0("UPDATE water_quality_codes_updated SET `main_code` = \"", current_code, "\" WHERE `code_id` IN (?)")
         
         dbSendQuery(con, sql, list(vals))
-        print(modified_main_codes %>%
-                filter(main_code == current_code))
+        
       }
     }
     
@@ -831,21 +852,23 @@ function(input, output, session) {
         
         vals <- modified_comment_codes %>%
           filter(comment_code == current_code) %>%
-          pull(observation_id)
+          pull(timestamp)
         
-        sql <- paste0("UPDATE water_quality_codes SET `comment_code` = \"", current_code, "\" WHERE `observation_id` IN (?)")
+        sql <- paste0("UPDATE water_quality_codes_updated SET `comment_code` = \"", current_code, "\" WHERE `code_id` IN (?)")
         
         print(modified_comment_codes %>%
                 filter(comment_code == current_code))
+        
         dbSendQuery(con, sql, list(vals))
       }
     }
     
-    current_ids <- qc_output$flags$observation_id
-    wq_codes_dat <- tbl(con, "water_quality_codes")
+    current_ids <- qc_output$flags$timestamp
+    wq_codes_dat <- tbl(con, "water_quality_codes_updated")
     
     qc_output$codes <- wq_codes_dat %>%
-      filter(observation_id %in% current_ids) %>%
+      filter(timestamp %in% current_ids,
+             site_code == current_site_code) %>%
       collect() %>%
       mutate(main_code_modified = FALSE,
              comment_code_modified = FALSE)

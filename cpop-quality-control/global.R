@@ -17,8 +17,8 @@ library(plotly)
 library(shinyjs)
 library(DBI)
 
-app_location <- "local"
-#app_location <- "shiny_server"
+#app_location <- "local"
+app_location <- "shiny_server"
 
 if(app_location == "shiny_server"){
   library(dbplyr, lib.loc = "/home/lonnemanm/library")

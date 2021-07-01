@@ -58,6 +58,7 @@ annotation_controls_server <- function(id, current_data, qc_output){
     # Return dataframe containing timestamps and codes
     # Codes are collapsed to a single row for plotting
     code_timestamps <- reactive({
+      
       # Determine if observations for current sensor have been annotated
       qc_output$codes %>%
         filter(parameter == input$parameter_qc) %>%
@@ -80,7 +81,7 @@ annotation_controls_server <- function(id, current_data, qc_output){
     })
     
     reactive({
-
+      
       if(is.null(input$parameter_qc)){
         return(NULL)
       } else if(input$parameter_qc == ""){
